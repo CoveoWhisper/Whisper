@@ -2,4 +2,4 @@ nose
 flask
 pytest
 pytest-flask
-tensorflow
+tensorflow==1.5
