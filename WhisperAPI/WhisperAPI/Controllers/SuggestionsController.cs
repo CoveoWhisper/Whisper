@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using WhisperAPI.Models;
 using WhisperAPI.Services;
+using WhisperAPI.ActionFilters;
 
 namespace WhisperAPI.Controllers
 {
@@ -15,6 +16,7 @@ namespace WhisperAPI.Controllers
             this._suggestionsService = suggestionsService;
         }
 
+        [ContextActionFilter]
         [HttpPost]
         public IActionResult GetSuggestions([FromBody] SearchQuerry searchQuerry)
         {
@@ -22,6 +24,9 @@ namespace WhisperAPI.Controllers
             {
                 return this.BadRequest();
             }
+
+            var t = RouteData.Values["context"];
+            System.Diagnostics.Debug.WriteLine(t);
 
             return this.Ok(this._suggestionsService.GetSuggestions(searchQuerry.Querry).ToList());
         }
