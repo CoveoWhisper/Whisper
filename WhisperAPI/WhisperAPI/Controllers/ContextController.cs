@@ -21,20 +21,34 @@ namespace WhisperAPI.Controllers
 
         public override void OnActionExecuting(ActionExecutingContext actionExecutingContext)
         {
-            var searchQuery = (SearchQuery)actionExecutingContext.ActionArguments["searchQuery"];
-
-            log4net.ThreadContext.Properties["requestId"] = Guid.NewGuid();
             if (!this.ModelState.IsValid)
             {
                 actionExecutingContext.Result = this.BadRequest(this.ModelState);
-                Log.Error($"Search query:\r\n{JsonConvert.SerializeObject(searchQuery, Formatting.Indented)}");
                 return;
             }
 
-            Log.Debug($"Search query:\r\n {JsonConvert.SerializeObject(searchQuery, Formatting.Indented)}");
-            Guid chatKey = searchQuery.ChatKey.Value;
-            this.ConversationContext = this._contexts[chatKey];
+            Guid chatKey;
+            object param;
 
+            if (actionExecutingContext.ActionArguments.TryGetValue("searchQuery", out param))
+            {
+                var searchQuery = (SearchQuery) param;
+                chatKey = searchQuery.ChatKey.Value;
+                log4net.ThreadContext.Properties["requestId"] = Guid.NewGuid();
+                Log.Debug($"Search query:\r\n {JsonConvert.SerializeObject(searchQuery, Formatting.Indented)}");
+            }
+            else if (actionExecutingContext.ActionArguments.TryGetValue("chatkey", out param))
+            {
+                chatKey = (Guid) param;
+                Log.Debug($"chatkey:\r\n {chatKey}");
+            }
+            else
+            {
+                Log.Error($"Unable to retrieve chatkey with action arguments: \r\n  {JsonConvert.SerializeObject(actionExecutingContext.ActionArguments, Formatting.Indented)}");
+                return;
+            }
+
+            this.ConversationContext = this._contexts[chatKey];
             base.OnActionExecuting(actionExecutingContext);
         }
     }

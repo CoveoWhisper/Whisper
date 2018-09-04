@@ -94,9 +94,10 @@ namespace WhisperAPI.Tests.Unit
                 new Dictionary<string, object>(),
                 this._suggestionController);
 
+            object param = this._validSearchQueryList[indexOfTest];
             actionExecutingContext
-                .Setup(x => x.ActionArguments["searchQuery"])
-                .Returns(this._validSearchQueryList[indexOfTest]);
+                .Setup(x => x.ActionArguments.TryGetValue("searchQuery", out param))
+                .Returns(true);
 
             return actionExecutingContext.Object;
         }
