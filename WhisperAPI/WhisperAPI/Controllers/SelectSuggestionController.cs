@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using WhisperAPI.Models;
-using WhisperAPI.Services;
 using WhisperAPI.Services.Context;
+using WhisperAPI.Services.SelectSuggestion;
 
 namespace WhisperAPI.Controllers
 {
@@ -19,15 +19,20 @@ namespace WhisperAPI.Controllers
         }
 
         [HttpPost]
-        public IActionResult SelectSuggestion([FromBody] SelectSuggestionPost selectSuggestionPost)
+        public IActionResult SelectSuggestion([FromBody] SearchQuery searchQuery)
         {
-            if (!this.ModelState.IsValid || selectSuggestionPost?.Id == null)
+            if (!this.ModelState.IsValid || searchQuery?.Query == null)
             {
                 return this.BadRequest();
             }
 
-            this._selectSuggestionService.UpdateContextWithSelectedSuggestion(this.ConversationContext, selectSuggestionPost);
-            Log.Debug($"Id: {selectSuggestionPost.Id}");
+            bool isContextUpdated = this._selectSuggestionService.UpdateContextWithSelectedSuggestion(this.ConversationContext, searchQuery);
+            if (!isContextUpdated)
+            {
+                return this.BadRequest();
+            }
+
+            Log.Debug($"Select suggestion with id {searchQuery.Query}");
 
             return this.Ok();
         }

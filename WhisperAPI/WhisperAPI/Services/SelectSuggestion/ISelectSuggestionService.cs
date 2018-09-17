@@ -4,6 +4,6 @@ namespace WhisperAPI.Services.SelectSuggestion
 {
     public interface ISelectSuggestionService
     {
-        void UpdateContextWithSelectedSuggestion(ConversationContext conversationContext, SelectSuggestionPost selectSuggestionPost);
+        bool UpdateContextWithSelectedSuggestion(ConversationContext conversationContext, SearchQuery searchQuery);
     }
 }
