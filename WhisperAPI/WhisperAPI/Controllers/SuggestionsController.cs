@@ -40,5 +40,25 @@ namespace WhisperAPI.Controllers
 
             return this.Ok(suggestion);
         }
+
+        [Route("/Whisper/[Controller]/click")]
+        [HttpPost]
+        public IActionResult SelectSuggestion([FromBody] SearchQuery searchQuery)
+        {
+            if (!this.ModelState.IsValid || searchQuery?.Query == null)
+            {
+                return this.BadRequest();
+            }
+
+            bool isContextUpdated = this._suggestionsService.UpdateContextWithSelectedSuggestion(this.ConversationContext, searchQuery);
+            if (!isContextUpdated)
+            {
+                return this.BadRequest();
+            }
+
+            Log.Debug($"Select suggestion with id {searchQuery.Query}");
+
+            return this.Ok();
+        }
     }
 }

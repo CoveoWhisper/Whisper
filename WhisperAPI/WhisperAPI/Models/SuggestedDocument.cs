@@ -1,4 +1,5 @@
-﻿using WhisperAPI.Models.MLAPI;
+using System;
+using WhisperAPI.Models.MLAPI;
 using WhisperAPI.Models.Search;
 
 namespace WhisperAPI.Models
@@ -11,12 +12,15 @@ namespace WhisperAPI.Models
 
         public SuggestedDocument(ISearchResultElement searchResultElement)
         {
+            this.Id = Guid.NewGuid();
             this.Title = searchResultElement.Title;
             this.Uri = searchResultElement.Uri;
             this.PrintableUri = searchResultElement.PrintableUri;
             this.Summary = searchResultElement.Summary;
             this.Excerpt = searchResultElement.Excerpt;
         }
+
+        public Guid Id { get; set; }
 
         public string Title { get; set; }
 
