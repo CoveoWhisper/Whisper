@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using WhisperAPI.Models;
@@ -53,6 +54,26 @@ namespace WhisperAPI.Services.Suggestions
             {
                 context.SuggestedDocuments.Add(suggestedDocument);
             }
+        }
+
+        public bool UpdateContextWithSelectedSuggestion(ConversationContext conversationContext, SearchQuery searchQuery)
+        {
+            Guid suggestionId = new Guid(searchQuery.Query);
+            SuggestedDocument suggestedDocument = conversationContext.SuggestedDocuments.ToList().Find(x => x.Id == suggestionId);
+            if (suggestedDocument != null)
+            {
+                conversationContext.SelectedSuggestedDocuments.Add(suggestedDocument);
+                return true;
+            }
+
+            Question question = conversationContext.Questions.ToList().Find(x => x.Id == suggestionId);
+            if (question != null)
+            {
+                conversationContext.SelectedQuestions.Add(question);
+                return true;
+            }
+
+            return false;
         }
 
         public bool IsQueryRelevant(SearchQuery searchQuery)

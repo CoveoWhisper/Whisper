@@ -10,7 +10,6 @@ using WhisperAPI.Services.Context;
 using WhisperAPI.Services.MLAPI.Facets;
 using WhisperAPI.Services.NLPAPI;
 using WhisperAPI.Services.Search;
-using WhisperAPI.Services.SelectSuggestion;
 using WhisperAPI.Services.Suggestions;
 using WhisperAPI.Settings;
 
@@ -78,9 +77,6 @@ namespace WhisperAPI
                     x.GetService<IIndexSearch>(),
                     x.GetService<INlpCall>(),
                     applicationSettings.IrrelevantIntents));
-
-            services.AddTransient<ISelectSuggestionService>(
-                x => new SelectSuggestionService());
 
             services.AddTransient<INlpCall>(
                 x => new NlpCall(

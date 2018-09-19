@@ -21,6 +21,8 @@ namespace WhisperAPI.Tests.Unit
     {
         private List<SearchQuery> _invalidSearchQueryList;
         private List<SearchQuery> _validSearchQueryList;
+        private List<SearchQuery> _invalidSearchQueryListSelectSuggestion;
+        private List<SearchQuery> _validSearchQueryListSelectSuggestion;
 
         private Mock<ISuggestionsService> _suggestionServiceMock;
         private SuggestionsController _suggestionController;
@@ -41,6 +43,18 @@ namespace WhisperAPI.Tests.Unit
             {
                  new SearchQuery { ChatKey = new Guid("0f8fad5b-d9cb-469f-a165-708677289501"), Query = "test", Type = MessageType.Customer },
                  new SearchQuery { ChatKey = new Guid("0f8fad5b-d9cb-469f-a165-708677289501"), Query = "test", Type = MessageType.Agent }
+            };
+
+            this._invalidSearchQueryListSelectSuggestion = new List<SearchQuery>
+            {
+                null,
+                new SearchQuery { ChatKey = new Guid("0f8fad5b-d9cb-469f-a165-708677289501"), Query = null, Type = MessageType.Agent },
+                new SearchQuery { ChatKey = new Guid("0f8fad5b-d9cb-469f-a165-708677289501"), Query = "not_a_suggestion_id", Type = MessageType.Agent }
+            };
+
+            this._validSearchQueryListSelectSuggestion = new List<SearchQuery>
+            {
+                new SearchQuery { ChatKey = new Guid("0f8fad5b-d9cb-469f-a165-708677289501"), Query = "0f8fad7b-d9cb-469f-a165-708677289501", Type = MessageType.Agent }
             };
         }
 
@@ -78,6 +92,33 @@ namespace WhisperAPI.Tests.Unit
             var suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
             suggestion.SuggestedDocuments.Should().BeEquivalentTo(this.GetListOfDocuments());
+        }
+
+        [Test]
+        [TestCase(0)]
+        [TestCase(1)]
+        [TestCase(2)]
+        public void When_receive_invalid_or_null_searchQuery_then_return_bad_request_select_suggestion(int invalidQueryIndex)
+        {
+            this._suggestionServiceMock = new Mock<ISuggestionsService>();
+            this._suggestionServiceMock
+                .Setup(x => x.UpdateContextWithSelectedSuggestion(It.IsAny<ConversationContext>(), It.IsAny<SearchQuery>()))
+                .Returns(false);
+
+            this._suggestionController = new SuggestionsController(this._suggestionServiceMock.Object, null);
+            this._suggestionController.SelectSuggestion(this._invalidSearchQueryListSelectSuggestion[invalidQueryIndex]).Should().BeEquivalentTo(new BadRequestResult());
+        }
+
+        [Test]
+        [TestCase(0)]
+        public void When_receive_valid_searchQuery_then_return_Ok_request_select_suggestion(int validQueryIndex)
+        {
+            this._suggestionServiceMock = new Mock<ISuggestionsService>();
+            this._suggestionServiceMock
+                .Setup(x => x.UpdateContextWithSelectedSuggestion(It.IsAny<ConversationContext>(), It.IsAny<SearchQuery>()))
+                .Returns(true);
+            this._suggestionController = new SuggestionsController(this._suggestionServiceMock.Object, null);
+            this._suggestionController.SelectSuggestion(this._validSearchQueryListSelectSuggestion[validQueryIndex]).Should().BeEquivalentTo(new OkResult());
         }
 
         public ActionExecutingContext GetActionExecutingContext(int indexOfTest)

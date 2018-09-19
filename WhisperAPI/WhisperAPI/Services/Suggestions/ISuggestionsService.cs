@@ -10,5 +10,7 @@ namespace WhisperAPI.Services.Suggestions
         void UpdateContextWithNewQuery(ConversationContext conversationContext, SearchQuery searchQuery);
 
         void UpdateContextWithNewSuggestions(ConversationContext conversationContext, List<SuggestedDocument> suggestedDocuments);
+
+        bool UpdateContextWithSelectedSuggestion(ConversationContext conversationContext, SearchQuery searchQuery);
     }
 }
