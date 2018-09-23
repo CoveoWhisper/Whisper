@@ -4,7 +4,7 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using WhisperAPI.Models;
 
-namespace WhisperAPI.Services
+namespace WhisperAPI.Services.Context
 {
     public class Contexts : DbContext
     {

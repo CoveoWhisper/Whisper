@@ -1,7 +1,7 @@
 ﻿using System;
 using WhisperAPI.Models;
 
-namespace WhisperAPI.Services
+namespace WhisperAPI.Services.Context
 {
     public interface IContexts
     {

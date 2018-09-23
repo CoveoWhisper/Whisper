@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace WhisperAPI.Models
+namespace WhisperAPI.Models.Search
 {
     public class SearchResult : ISearchResult
     {

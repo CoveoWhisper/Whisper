@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using WhisperAPI.Models;
 
-namespace WhisperAPI.Services
+namespace WhisperAPI.Services.Context
 {
     public class InMemoryContexts : IContexts
     {

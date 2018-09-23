@@ -1,4 +1,6 @@
-﻿namespace WhisperAPI.Models
+﻿using WhisperAPI.Models.Search;
+
+namespace WhisperAPI.Models
 {
     public class SuggestedDocument
     {
@@ -27,9 +29,21 @@
 
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj)) { return false; }
-            if (ReferenceEquals(this, obj)) { return true; }
-            if (obj.GetType() != this.GetType()) { return false; }
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+
             return this.Equals((SuggestedDocument)obj);
         }
 

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using WhisperAPI.Models;
 
-namespace WhisperAPI.Services
+namespace WhisperAPI.Services.Suggestions
 {
     public interface ISuggestionsService
     {

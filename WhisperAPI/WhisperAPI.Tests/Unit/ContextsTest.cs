@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
 using NUnit.Framework;
 using WhisperAPI.Models;
-using WhisperAPI.Services;
+using WhisperAPI.Services.Context;
 
 namespace WhisperAPI.Tests.Unit
 {

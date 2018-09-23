@@ -10,7 +10,8 @@ using Moq;
 using NUnit.Framework;
 using WhisperAPI.Controllers;
 using WhisperAPI.Models;
-using WhisperAPI.Services;
+using WhisperAPI.Services.Context;
+using WhisperAPI.Services.Suggestions;
 using static WhisperAPI.Models.SearchQuery;
 
 namespace WhisperAPI.Tests.Unit

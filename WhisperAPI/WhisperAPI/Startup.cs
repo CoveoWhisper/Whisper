@@ -6,7 +6,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Swashbuckle.AspNetCore.Swagger;
-using WhisperAPI.Services;
+using WhisperAPI.Services.Context;
+using WhisperAPI.Services.MLAPI.Facets;
+using WhisperAPI.Services.NLPAPI;
+using WhisperAPI.Services.Search;
+using WhisperAPI.Services.Suggestions;
 using WhisperAPI.Settings;
 
 namespace WhisperAPI
@@ -43,32 +47,7 @@ namespace WhisperAPI
             var applicationSettings = new ApplicationSettings();
             this.Configuration.Bind(applicationSettings);
 
-            ConfigureDependancy(services, applicationSettings);
-        }
-
-        private static void ConfigureDependancy(IServiceCollection services, ApplicationSettings applicationSettings)
-        {
-            services.AddTransient<ISuggestionsService>(
-                x => new SuggestionsService(
-                    x.GetService<IIndexSearch>(),
-                    x.GetService<INlpCall>(),
-                    applicationSettings.IrrelevantIntents));
-
-            services.AddTransient<INlpCall>(
-                x => new NlpCall(
-                    x.GetService<HttpClient>(),
-                    applicationSettings.NlpApiBaseAddress));
-
-            services.AddTransient<IIndexSearch>(
-                x => new IndexSearch(
-                    applicationSettings.ApiKey,
-                    x.GetService<HttpClient>()));
-
-            services.AddTransient<HttpClient, HttpClient>();
-
-            services.AddSingleton<IContexts>(
-                x => new InMemoryContexts(
-                    TimeSpan.Parse(applicationSettings.ContextLifeSpan)));
+            ConfigureDependency(services, applicationSettings);
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
@@ -89,6 +68,38 @@ namespace WhisperAPI
             app.UseSwagger();
             app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v2/swagger.json", "WhisperAPI v2"));
             app.UseMvc();
+        }
+
+        private static void ConfigureDependency(IServiceCollection services, ApplicationSettings applicationSettings)
+        {
+            services.AddTransient<ISuggestionsService>(
+                x => new SuggestionsService(
+                    x.GetService<IIndexSearch>(),
+                    x.GetService<INlpCall>(),
+                    x.GetService<IDocumentFacets>(),
+                    applicationSettings.IrrelevantIntents));
+
+            services.AddTransient<INlpCall>(
+                x => new NlpCall(
+                    x.GetService<HttpClient>(),
+                    applicationSettings.NlpApiBaseAddress));
+
+            services.AddTransient<IDocumentFacets>(
+                x => new DocumentFacets(
+                    x.GetService<HttpClient>(),
+                    applicationSettings.MlApiBaseAddress));
+
+            services.AddTransient<IIndexSearch>(
+                x => new IndexSearch(
+                    applicationSettings.ApiKey,
+                    x.GetService<HttpClient>(),
+                    applicationSettings.SearchBaseAddress));
+
+            services.AddTransient<HttpClient, HttpClient>();
+
+            services.AddSingleton<IContexts>(
+                x => new InMemoryContexts(
+                    TimeSpan.Parse(applicationSettings.ContextLifeSpan)));
         }
     }
 }

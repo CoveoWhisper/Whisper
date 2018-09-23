@@ -2,28 +2,28 @@
 using System.Net.Http.Headers;
 using System.Text;
 using Newtonsoft.Json;
-using WhisperAPI.Models;
+using WhisperAPI.Models.Search;
 
-namespace WhisperAPI.Services
+namespace WhisperAPI.Services.Search
 {
     public class IndexSearch : IIndexSearch
     {
         private static readonly log4net.ILog Log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        private const string URL = "https://cloudplatform.coveo.com/rest/search/v2";
+        private readonly string _searchEndPoint = "rest/search/v2";
         private readonly string _apiKey;
         private readonly HttpClient _httpClient;
 
-        public IndexSearch(string apiKey, HttpClient client)
+        public IndexSearch(string apiKey, HttpClient client, string searchBaseAddress)
         {
             this._apiKey = apiKey;
             this._httpClient = client;
-            this.InitHttpClient();
+            this.InitHttpClient(searchBaseAddress);
         }
 
         public ISearchResult Search(string query)
         {
-            return JsonConvert.DeserializeObject<SearchResult>(this.GetStringFromPost(URL, this.CreateStringContent(query)));
+            return JsonConvert.DeserializeObject<SearchResult>(this.GetStringFromPost(this._searchEndPoint, this.CreateStringContent(query)));
         }
 
         private string GetStringFromPost(string url, StringContent content)
@@ -36,11 +36,20 @@ namespace WhisperAPI.Services
 
         private StringContent CreateStringContent(string query)
         {
-            return new StringContent($"{{\"lq\": \"{query}\",\"numberOfResults\": \"50\"}}", Encoding.UTF8, "application/json");
+            var searchParameters = new SearchParameters
+            {
+                Lq = query,
+                NumberOfResults = 50
+            };
+
+            var json = JsonConvert.SerializeObject(searchParameters);
+            return new StringContent(json, Encoding.UTF8, "application/json");
         }
 
-        private void InitHttpClient()
+        private void InitHttpClient(string baseURL)
         {
+            this._httpClient.BaseAddress = new System.Uri(baseURL);
+
             // Add an Accept header for JSON format.
             this._httpClient.DefaultRequestHeaders.Accept.Add(
             new MediaTypeWithQualityHeaderValue("application/json"));

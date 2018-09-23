@@ -6,8 +6,8 @@ using FluentAssertions;
 using Moq;
 using Moq.Protected;
 using NUnit.Framework;
-using WhisperAPI.Models;
-using WhisperAPI.Services;
+using WhisperAPI.Models.Search;
+using WhisperAPI.Services.Search;
 
 namespace WhisperAPI.Tests.Unit
 {
@@ -36,7 +36,7 @@ namespace WhisperAPI.Tests.Unit
                 }));
 
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
-            IIndexSearch indexSearchOK = new IndexSearch(null, this._httpClient);
+            IIndexSearch indexSearchOK = new IndexSearch(null, this._httpClient, "https://localhost:5000");
 
             indexSearchOK.Search(query).Should().BeEquivalentTo(this.GetSearchResult());
         }
@@ -54,7 +54,7 @@ namespace WhisperAPI.Tests.Unit
                 }));
 
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
-            IIndexSearch indexSearchNotFound = new IndexSearch(null, this._httpClient);
+            IIndexSearch indexSearchNotFound = new IndexSearch(null, this._httpClient, "https://localhost:5000");
 
             Assert.Throws<HttpRequestException>(() => indexSearchNotFound.Search(query));
         }
@@ -72,7 +72,7 @@ namespace WhisperAPI.Tests.Unit
                 }));
 
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
-            IIndexSearch indexSearchOKNoContent = new IndexSearch(null, this._httpClient);
+            IIndexSearch indexSearchOKNoContent = new IndexSearch(null, this._httpClient, "https://localhost:5000");
 
             indexSearchOKNoContent.Search(query).Should().BeEquivalentTo((SearchResult)null);
         }

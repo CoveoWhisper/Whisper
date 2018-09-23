@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Newtonsoft.Json;
 using WhisperAPI.Models;
-using WhisperAPI.Services;
+using WhisperAPI.Services.Context;
 
 namespace WhisperAPI.Controllers
 {

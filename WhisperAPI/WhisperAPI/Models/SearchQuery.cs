@@ -4,7 +4,6 @@ using Newtonsoft.Json;
 
 namespace WhisperAPI.Models
 {
-
     public class SearchQuery
     {
         public enum MessageType

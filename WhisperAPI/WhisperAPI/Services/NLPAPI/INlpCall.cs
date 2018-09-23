@@ -1,6 +1,6 @@
 ﻿using WhisperAPI.Models.NLPAPI;
 
-namespace WhisperAPI.Services
+namespace WhisperAPI.Services.NLPAPI
 {
     public interface INlpCall
     {

@@ -1,13 +1,15 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using Newtonsoft.Json;
-using WhisperAPI.Models.NLPAPI;
+using WhisperAPI.Models;
 
-namespace WhisperAPI.Services
+namespace WhisperAPI.Services.MLAPI.Facets
 {
-    public class NlpCall : INlpCall
+    public class DocumentFacets : IDocumentFacets
     {
         private static readonly log4net.ILog Log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -15,24 +17,25 @@ namespace WhisperAPI.Services
 
         private readonly HttpClient _httpClient;
 
-        public NlpCall(HttpClient httpClient, string baseAdress)
+        public DocumentFacets(HttpClient httpClient, string baseAdress)
         {
             this._httpClient = httpClient;
             this._baseAdress = baseAdress;
             this.InitHttpClient();
         }
 
-        public NlpAnalysis GetNlpAnalysis(string sentence)
+        public List<Question> GetQuestions(IEnumerable<SuggestedDocument> suggestedDocuments)
         {
-            var response = this._httpClient.PostAsync("NLP/Analyze", CreateStringContent(sentence)).Result;
+            var response = this._httpClient.PostAsync("ML/Analyze", CreateStringContent(suggestedDocuments)).Result;
             response.EnsureSuccessStatusCode();
 
-            return JsonConvert.DeserializeObject<NlpAnalysis>(response.Content.ReadAsStringAsync().Result);
+            return JsonConvert.DeserializeObject<List<Question>>(response.Content.ReadAsStringAsync().Result);
         }
 
-        private static StringContent CreateStringContent(string sentence)
+        private static StringContent CreateStringContent(IEnumerable<SuggestedDocument> suggestedDocuments)
         {
-            return new StringContent($"{{\"sentence\": \"{sentence}\"}}", Encoding.UTF8, "application/json");
+            var json = JsonConvert.SerializeObject(suggestedDocuments.ToList());
+            return new StringContent(json, Encoding.UTF8, "application/json");
         }
 
         private void InitHttpClient()

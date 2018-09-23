@@ -8,7 +8,7 @@ using Moq.Protected;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using WhisperAPI.Models.NLPAPI;
-using WhisperAPI.Services;
+using WhisperAPI.Services.NLPAPI;
 using WhisperAPI.Tests.Data.Builders;
 
 namespace WhisperAPI.Tests.Unit

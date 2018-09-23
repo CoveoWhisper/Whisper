@@ -3,8 +3,12 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using WhisperAPI.Models;
 using WhisperAPI.Models.NLPAPI;
+using WhisperAPI.Models.Search;
+using WhisperAPI.Services.MLAPI.Facets;
+using WhisperAPI.Services.NLPAPI;
+using WhisperAPI.Services.Search;
 
-namespace WhisperAPI.Services
+namespace WhisperAPI.Services.Suggestions
 {
     public class SuggestionsService : ISuggestionsService
     {
@@ -14,12 +18,15 @@ namespace WhisperAPI.Services
 
         private readonly INlpCall _nlpCall;
 
+        private readonly IDocumentFacets _documentFacets;
+
         private readonly List<string> _irrelevantIntents;
 
-        public SuggestionsService(IIndexSearch indexSearch, INlpCall nlpCall, List<string> irrelevantIntents)
+        public SuggestionsService(IIndexSearch indexSearch, INlpCall nlpCall, IDocumentFacets documentFacets, List<string> irrelevantIntents)
         {
             this._indexSearch = indexSearch;
             this._nlpCall = nlpCall;
+            this._documentFacets = documentFacets;
             this._irrelevantIntents = irrelevantIntents;
         }
 
@@ -34,8 +41,12 @@ namespace WhisperAPI.Services
 
             var coveoIndexDocuments = this.SearchCoveoIndex(allRelevantQueries);
 
-            // TODO: Send 5 most relevant results
-            return this.FilterOutChosenSuggestions(coveoIndexDocuments, conversationContext.SearchQueries).Take(5);
+            return this.FilterOutChosenSuggestions(coveoIndexDocuments, conversationContext.SearchQueries);
+        }
+
+        public List<Question> GetQuestionsFromDocument(IEnumerable<SuggestedDocument> suggestedDocuments)
+        {
+            return this._documentFacets.GetQuestions(suggestedDocuments);
         }
 
         public void UpdateContextWithNewQuery(ConversationContext context, SearchQuery searchQuery)

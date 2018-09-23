@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace WhisperAPI.Models
+namespace WhisperAPI.Models.Search
 {
     public interface ISearchResult
     {

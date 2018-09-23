@@ -1,4 +1,4 @@
-﻿using WhisperAPI.Models;
+﻿using WhisperAPI.Models.Search;
 
 namespace WhisperAPI.Tests.Data.Builders
 {
