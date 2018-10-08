@@ -2,6 +2,6 @@
 {
     public class ApiVersion
     {
-        public string Version => "11";
+        public string Version => "12";
     }
 }
