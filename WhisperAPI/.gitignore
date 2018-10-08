@@ -36,6 +36,9 @@
 ehthumbs.db
 Thumbs.db
 
+#Secrets
+WhisperAPI/appsettings_secret.json
+
 # Build output
 WhisperAPI/bin/
 WhisperAPI.Tests/bin/
