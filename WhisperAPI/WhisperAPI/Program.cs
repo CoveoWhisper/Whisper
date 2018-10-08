@@ -18,7 +18,8 @@ namespace WhisperAPI
                 {
                     configurationBuilder
                         .SetBasePath(Directory.GetCurrentDirectory())
-                        .AddJsonFile("appsettings.json");
+                        .AddJsonFile("appsettings.json")
+                        .AddJsonFile("appsettings_secret.json");
                 })
                 .UseStartup<Startup>()
                 .Build();
