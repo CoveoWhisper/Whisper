@@ -20,7 +20,7 @@ namespace WhisperAPI.Tests.Unit
 
             var apiVersion = result.As<OkObjectResult>().Value as ApiVersion;
 
-            apiVersion.Version.Should().BeEquivalentTo(new ApiVersion().Version);
+            apiVersion.Version.Should().BeEquivalentTo("12");
         }
     }
 }
