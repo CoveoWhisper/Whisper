@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Swashbuckle.AspNetCore.Swagger;
 using WhisperAPI.Services.Context;
+using WhisperAPI.Services.Facets;
 using WhisperAPI.Services.MLAPI.Facets;
 using WhisperAPI.Services.NLPAPI;
 using WhisperAPI.Services.Questions;
@@ -80,6 +81,13 @@ namespace WhisperAPI
                     x.GetService<IFilterDocuments>()));
 
             services.AddTransient<IQuestionsService>(x => new QuestionsService());
+
+            services.AddTransient<IFacetsService>(x => new FacetsService(x.GetService<IFacetValues>()));
+
+            services.AddTransient<IFacetValues>(
+                x => new FacetValues(
+                    x.GetService<HttpClient>(),
+                    applicationSettings.MlApiBaseAddress));
 
             services.AddTransient<INlpCall>(
                 x => new NlpCall(
