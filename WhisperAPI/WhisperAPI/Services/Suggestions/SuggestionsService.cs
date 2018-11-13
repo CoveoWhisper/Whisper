@@ -69,14 +69,14 @@ namespace WhisperAPI.Services.Suggestions
                 // TODO
             }
 
+            // TODO ensure documents are filtered, here, in the calls or afterwards
+            var mergedDocuments = this.MergeRecommendedDocuments(allRecommendedDocuments);
+
             if (useFacetQuestionRecommender)
             {
-                allRecommendedQuestions.Add(this.GenerateQuestions(conversationContext, suggestion.Documents).Take(suggestionQuery.MaxQuestions).ToList());
+                allRecommendedQuestions.Add(this.GenerateQuestions(conversationContext, mergedDocuments.Select(d => d.Value)).Take(query.MaxQuestions));
             }
 
-            // TODO ensure documents are filtered, here, in the calls or afterwards
-
-            var mergedDocuments = this.MergeRecommendedDocuments(allRecommendedDocuments);
             var mergedQuestions = this.MergeRecommendedQuestions(allRecommendedQuestions).Take(query.MaxQuestions);
 
             List<Facet> activeFacets = GetActiveFacets(conversationContext).ToList();
@@ -135,14 +135,24 @@ namespace WhisperAPI.Services.Suggestions
 
             if (string.IsNullOrEmpty(allRelevantQueries.Trim()))
             {
-                return new List<Document>();
+                return new List<Recommendation<Document>>();
             }
 
             // TODO: why suggested documents
             var coveoIndexDocuments = this.SearchCoveoIndex(allRelevantQueries, conversationContext.SuggestedDocuments.ToList());
 
             // TODO return recommendations with confidence and recommender type
-            return this.FilterOutChosenSuggestions(coveoIndexDocuments, conversationContext.SearchQueries);
+            var documentsFiltered = this.FilterOutChosenSuggestions(coveoIndexDocuments, conversationContext.SearchQueries);
+
+            return documentsFiltered.Select(d => new Recommendation<Document>
+            {
+                Value = d,
+                Confidence = 1,
+                RecommendedBy = new List<RecommenderType>
+                {
+                    RecommenderType.LongQuerySearch
+                }
+            });
         }
 
         public void UpdateContextWithNewQuery(ConversationContext context, SearchQuery searchQuery)
@@ -249,20 +259,28 @@ namespace WhisperAPI.Services.Suggestions
         {
             var filterParameter = new FilterDocumentsParameters
             {
-                Documents = documentsToFilter.Select(d => d.Uri).ToList()
+                Documents = documentsToFilter.Select(d => d.Uri).ToList(),
                 MustHaveFacets = mustHaveFacets
             };
             return this._filterDocuments.FilterDocumentsByFacets(filterParameter);
         }
 
-        private IEnumerable<Question> GenerateQuestions(ConversationContext conversationContext, List<Document> documents)
+        private IEnumerable<Recommendation<Question>> GenerateQuestions(ConversationContext conversationContext, IEnumerable<Document> documents)
         {
             var questions = this.GetQuestionsFromDocument(conversationContext, documents).ToList();
 
             UpdateContextWithNewQuestions(conversationContext, questions);
             questions.ForEach(x => Log.Debug($"Id: {x.Id}, Text: {x.Text}"));
 
-            return questions;
+            return questions.Select(d => new Recommendation<Question>
+            {
+                Value = d,
+                Confidence = 1,
+                RecommendedBy = new List<RecommenderType>
+                {
+                    RecommenderType.FacetQuestions
+                }
+            });
         }
 
         private IEnumerable<Document> SearchCoveoIndex(string query, List<Document> suggestedDocuments)

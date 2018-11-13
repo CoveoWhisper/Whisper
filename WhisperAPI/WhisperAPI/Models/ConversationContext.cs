@@ -19,7 +19,6 @@ namespace WhisperAPI.Models
         {
             this.SearchQueries = new List<SearchQuery>();
             this.SuggestedDocuments = new HashSet<Document>();
-            this.LastNotFilteredDocuments = new List<Document>();
             this.LastSuggestedQuestions = new List<Question>();
             this.Questions = new HashSet<Question>();
             this.SelectedSuggestedDocuments = new HashSet<Document>();

@@ -11,7 +11,7 @@ namespace WhisperAPI.Services.Suggestions
 
         Suggestion GetLastSuggestion(ConversationContext conversationContext, SuggestionQuery query);
 
-        IEnumerable<Document> GetDocuments(ConversationContext conversationContext);
+        IEnumerable<Recommendation<Document>> GetLongQuerySearchRecommendations(ConversationContext conversationContext);
 
         void UpdateContextWithNewQuery(ConversationContext conversationContext, SearchQuery searchQuery);
 

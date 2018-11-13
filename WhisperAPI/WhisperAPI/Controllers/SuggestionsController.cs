@@ -104,8 +104,8 @@ namespace WhisperAPI.Controllers
 
         private static void LogSuggestion(Suggestion suggestion)
         {
-            suggestion.Documents?.ForEach(x => Log.Debug($"Title: {x.Title}, Uri: {x.Uri}, PrintableUri: {x.PrintableUri}, Summary: {x.Summary}"));
-            suggestion.Questions?.ForEach(x => Log.Debug($"Id: {x.Id}, Text: {x.Text}"));
+            suggestion.Documents?.ForEach(x => Log.Debug($"Title: {x.Value.Title}, Uri: {x.Value.Uri}, PrintableUri: {x.Value.PrintableUri}, Summary: {x.Value.Summary}"));
+            suggestion.Questions?.ForEach(x => Log.Debug($"Id: {x.Value.Id}, Text: {x.Value.Text}"));
             suggestion.ActiveFacets?.ForEach(x => Log.Debug($"Id: {x.Id}, Name: {x.Name}, Value: {x.Value}"));
         }
     }

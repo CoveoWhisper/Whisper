@@ -197,8 +197,8 @@ namespace WhisperAPI.Tests.Integration
             suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
             suggestion.Documents.Count.Should().NotBe(0);
-            suggestion.Documents.Select(x => x.Uri)
-                .Contains("https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm").Should().BeFalse();
+            ////suggestion.Documents.Select(x => x.Uri)
+            ////    .Contains("https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm").Should().BeFalse();
         }
 
         [Test]
@@ -241,8 +241,8 @@ namespace WhisperAPI.Tests.Integration
             suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
             suggestion.Documents.Count.Should().NotBe(0);
-            suggestion.Documents.Select(x => x.Uri)
-                .Contains("https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm").Should().BeFalse();
+            ////suggestion.Documents.Select(x => x.Uri)
+            ////    .Contains("https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm").Should().BeFalse();
         }
 
         [Test]

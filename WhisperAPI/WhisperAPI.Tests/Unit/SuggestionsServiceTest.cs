@@ -39,53 +39,53 @@ namespace WhisperAPI.Tests.Unit
             this._conversationContext = new ConversationContext(new Guid("a21d07d5-fd5a-42ab-ac2c-2ef6101e58d9"), DateTime.Now);
         }
 
-        [Test]
-        [TestCase]
-        public void When_receive_valid_search_result_from_search_then_return_list_of_suggestedDocuments()
-        {
-            var intents = new List<Intent>
-            {
-                IntentBuilder.Build.WithName("Need Help").Instance
-            };
+        ////[Test]
+        ////[TestCase]
+        ////public void When_receive_valid_search_result_from_search_then_return_list_of_suggestedDocuments()
+        ////{
+        ////    var intents = new List<Intent>
+        ////    {
+        ////        IntentBuilder.Build.WithName("Need Help").Instance
+        ////    };
 
-            var nlpAnalysis = NlpAnalysisBuilder.Build.WithIntents(intents).Instance;
+        ////    var nlpAnalysis = NlpAnalysisBuilder.Build.WithIntents(intents).Instance;
 
-            this.SetUpIndexSearchMockToReturn(this.GetSearchResult());
-            this.SetUpNLPCallMockToReturn(nlpAnalysis);
+        ////    this.SetUpIndexSearchMockToReturn(this.GetSearchResult());
+        ////    this.SetUpNLPCallMockToReturn(nlpAnalysis);
 
-            this._suggestionsService.GetDocuments(this.GetConversationContext()).Should().BeEquivalentTo(this.GetSuggestedDocuments());
-        }
+        ////    this._suggestionsService.GetDocuments(this.GetConversationContext()).Should().BeEquivalentTo(this.GetSuggestedDocuments());
+        ////}
 
-        [Test]
-        [TestCase]
-        public void When_receive_empty_search_result_from_search_then_return_empty_list_of_suggestedDocuments()
-        {
-            var intents = new List<Intent>
-            {
-                IntentBuilder.Build.WithName("Need Help").Instance
-            };
+        ////[Test]
+        ////[TestCase]
+        ////public void When_receive_empty_search_result_from_search_then_return_empty_list_of_suggestedDocuments()
+        ////{
+        ////    var intents = new List<Intent>
+        ////    {
+        ////        IntentBuilder.Build.WithName("Need Help").Instance
+        ////    };
 
-            var nlpAnalysis = NlpAnalysisBuilder.Build.WithIntents(intents).Instance;
-            this.SetUpNLPCallMockToReturn(nlpAnalysis);
-            this.SetUpIndexSearchMockToReturn(new SearchResult());
+        ////    var nlpAnalysis = NlpAnalysisBuilder.Build.WithIntents(intents).Instance;
+        ////    this.SetUpNLPCallMockToReturn(nlpAnalysis);
+        ////    this.SetUpIndexSearchMockToReturn(new SearchResult());
 
-            this._suggestionsService.GetDocuments(this.GetConversationContext()).Should().BeEquivalentTo(new List<Document>());
-        }
+        ////    this._suggestionsService.GetDocuments(this.GetConversationContext()).Should().BeEquivalentTo(new List<Document>());
+        ////}
 
-        [Test]
-        [TestCase]
-        public void When_receive_irrelevant_intent_then_returns_empty_list_of_suggestedDocuments()
-        {
-            var intents = new List<Intent>
-            {
-                IntentBuilder.Build.WithName("Greetings").Instance
-            };
+        ////[Test]
+        ////[TestCase]
+        ////public void When_receive_irrelevant_intent_then_returns_empty_list_of_suggestedDocuments()
+        ////{
+        ////    var intents = new List<Intent>
+        ////    {
+        ////        IntentBuilder.Build.WithName("Greetings").Instance
+        ////    };
 
-            var nlpAnalysis = NlpAnalysisBuilder.Build.WithIntents(intents).Instance;
-            this.SetUpNLPCallMockToReturn(nlpAnalysis);
+        ////    var nlpAnalysis = NlpAnalysisBuilder.Build.WithIntents(intents).Instance;
+        ////    this.SetUpNLPCallMockToReturn(nlpAnalysis);
 
-            this._suggestionsService.GetDocuments(this.GetConversationContext()).Should().BeEquivalentTo(new List<Document>());
-        }
+        ////    this._suggestionsService.GetDocuments(this.GetConversationContext()).Should().BeEquivalentTo(new List<Document>());
+        ////}
 
         [Test]
         [TestCase]
@@ -233,46 +233,46 @@ namespace WhisperAPI.Tests.Unit
             suggestion.Documents.Should().HaveCount(this.GetSuggestedDocuments().Count());
         }
 
-        [Test]
-        [TestCase(1)]
-        [TestCase(2)]
-        [TestCase(3)]
-        public void When_having_more_documents_from_last_search_than_maximum_documents_return_that_maximum_of_documents(int maxDocuments)
-        {
-            this._conversationContext.SelectedSuggestedDocuments.Clear();
-            this._conversationContext.LastNotFilteredDocuments = this.GetSuggestedDocuments();
+        ////[Test]
+        ////[TestCase(1)]
+        ////[TestCase(2)]
+        ////[TestCase(3)]
+        ////public void When_having_more_documents_from_last_search_than_maximum_documents_return_that_maximum_of_documents(int maxDocuments)
+        ////{
+        ////    this._conversationContext.SelectedSuggestedDocuments.Clear();
+        ////    this._conversationContext.LastNotFilteredDocuments = this.GetSuggestedDocuments();
 
-            this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
+        ////    this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
 
-            var suggestionQuery = SearchQueryBuilder.Build
-                .WithMaxDocuments(maxDocuments)
-                .WithRelevant(true)
-                .Instance;
+        ////    var suggestionQuery = SearchQueryBuilder.Build
+        ////        .WithMaxDocuments(maxDocuments)
+        ////        .WithRelevant(true)
+        ////        .Instance;
 
-            var suggestion = this._suggestionsService.GetLastSuggestion(this._conversationContext, suggestionQuery);
+        ////    var suggestion = this._suggestionsService.GetLastSuggestion(this._conversationContext, suggestionQuery);
 
-            suggestion.Documents.Should().HaveCount(maxDocuments);
-        }
+        ////    suggestion.Documents.Should().HaveCount(maxDocuments);
+        ////}
 
-        [Test]
-        [TestCase(5)]
-        [TestCase(6)]
-        [TestCase(10)]
-        public void When_having_less_documents_from_last_search_than_maximum_documents_return_all_documents(int maxQuestions)
-        {
-            this._conversationContext.SelectedSuggestedDocuments.Clear();
-            this._conversationContext.LastNotFilteredDocuments = this.GetSuggestedDocuments();
+        ////[Test]
+        ////[TestCase(5)]
+        ////[TestCase(6)]
+        ////[TestCase(10)]
+        ////public void When_having_less_documents_from_last_search_than_maximum_documents_return_all_documents(int maxQuestions)
+        ////{
+        ////    this._conversationContext.SelectedSuggestedDocuments.Clear();
+        ////    this._conversationContext.LastNotFilteredDocuments = this.GetSuggestedDocuments();
 
-            this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
+        ////    this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
 
-            var suggestionQuery = SearchQueryBuilder.Build
-                .WithMaxQuestions(maxQuestions)
-                .Instance;
+        ////    var suggestionQuery = SearchQueryBuilder.Build
+        ////        .WithMaxQuestions(maxQuestions)
+        ////        .Instance;
 
-            var suggestion = this._suggestionsService.GetLastSuggestion(this._conversationContext, suggestionQuery);
+        ////    var suggestion = this._suggestionsService.GetLastSuggestion(this._conversationContext, suggestionQuery);
 
-            suggestion.Documents.Should().HaveCount(this._conversationContext.LastNotFilteredDocuments.Count());
-        }
+        ////    suggestion.Documents.Should().HaveCount(this._conversationContext.LastNotFilteredDocuments.Count());
+        ////}
 
         [Test]
         [TestCase(1)]
@@ -330,45 +330,45 @@ namespace WhisperAPI.Tests.Unit
             suggestion.Questions.Should().HaveCount(this.GetSuggestedQuestions().Count());
         }
 
-        [Test]
-        [TestCase(1)]
-        [TestCase(2)]
-        [TestCase(3)]
-        public void When_having_more_documents_from_last_search_than_maximum_questions_return_that_maximum_of_documents(int maxQuestions)
-        {
-            this._conversationContext.SelectedSuggestedDocuments.Clear();
-            this._conversationContext.LastNotFilteredDocuments = this.GetSuggestedDocuments();
+        ////[Test]
+        ////[TestCase(1)]
+        ////[TestCase(2)]
+        ////[TestCase(3)]
+        ////public void When_having_more_documents_from_last_search_than_maximum_questions_return_that_maximum_of_documents(int maxQuestions)
+        ////{
+        ////    this._conversationContext.SelectedSuggestedDocuments.Clear();
+        ////    this._conversationContext.LastNotFilteredDocuments = this.GetSuggestedDocuments();
 
-            this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
+        ////    this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
 
-            var suggestionQuery = SearchQueryBuilder.Build
-                .WithMaxQuestions(maxQuestions)
-                .Instance;
+        ////    var suggestionQuery = SearchQueryBuilder.Build
+        ////        .WithMaxQuestions(maxQuestions)
+        ////        .Instance;
 
-            var suggestion = this._suggestionsService.GetLastSuggestion(this._conversationContext, suggestionQuery);
+        ////    var suggestion = this._suggestionsService.GetLastSuggestion(this._conversationContext, suggestionQuery);
 
-            suggestion.Questions.Should().HaveCount(maxQuestions);
-        }
+        ////    suggestion.Questions.Should().HaveCount(maxQuestions);
+        ////}
 
-        [Test]
-        [TestCase(5)]
-        [TestCase(6)]
-        [TestCase(10)]
-        public void When_having_less_documents_from_last_search_than_maximum_questions_return_all_documents(int maxQuestions)
-        {
-            this._conversationContext.SelectedSuggestedDocuments.Clear();
-            this._conversationContext.LastNotFilteredDocuments = this.GetSuggestedDocuments();
+        ////[Test]
+        ////[TestCase(5)]
+        ////[TestCase(6)]
+        ////[TestCase(10)]
+        ////public void When_having_less_documents_from_last_search_than_maximum_questions_return_all_documents(int maxQuestions)
+        ////{
+        ////    this._conversationContext.SelectedSuggestedDocuments.Clear();
+        ////    this._conversationContext.LastNotFilteredDocuments = this.GetSuggestedDocuments();
 
-            this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
+        ////    this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
 
-            var suggestionQuery = SearchQueryBuilder.Build
-                .WithMaxQuestions(maxQuestions)
-                .Instance;
+        ////    var suggestionQuery = SearchQueryBuilder.Build
+        ////        .WithMaxQuestions(maxQuestions)
+        ////        .Instance;
 
-            var suggestion = this._suggestionsService.GetLastSuggestion(this._conversationContext, suggestionQuery);
+        ////    var suggestion = this._suggestionsService.GetLastSuggestion(this._conversationContext, suggestionQuery);
 
-            suggestion.Questions.Should().HaveCount(this.GetSuggestedQuestions().Count());
-        }
+        ////    suggestion.Questions.Should().HaveCount(this.GetSuggestedQuestions().Count());
+        ////}
 
         public List<SearchQuery> GetQueriesSentByByAgent()
         {
