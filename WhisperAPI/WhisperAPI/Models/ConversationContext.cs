@@ -44,8 +44,6 @@ namespace WhisperAPI.Models
 
         public IReadOnlyList<Question> AnsweredQuestions => this.Questions.Where(q => q.Status == QuestionStatus.Answered).ToList();
 
-        public List<Document> LastNotFilteredDocuments { get; set; }
-
         public List<Question> LastSuggestedQuestions { get; set; }
 
         public FilterDocumentsParameters FilterDocumentsParameters { get; set; }
