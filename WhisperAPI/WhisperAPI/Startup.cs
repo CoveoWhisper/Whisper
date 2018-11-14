@@ -76,16 +76,15 @@ namespace WhisperAPI
             services.AddTransient<ISuggestionsService>(
                 x => new SuggestionsService(
                     x.GetService<IIndexSearch>(),
-                    x.GetService<INlpCall>(),
                     x.GetService<IDocumentFacets>(),
-                    x.GetService<IFilterDocuments>(),
-                    applicationSettings.IrrelevantIntents));
+                    x.GetService<IFilterDocuments>()));
 
             services.AddTransient<IQuestionsService>(x => new QuestionsService());
 
             services.AddTransient<INlpCall>(
                 x => new NlpCall(
                     x.GetService<HttpClient>(),
+                    applicationSettings.IrrelevantIntents,
                     applicationSettings.NlpApiBaseAddress));
 
             services.AddTransient<IDocumentFacets>(

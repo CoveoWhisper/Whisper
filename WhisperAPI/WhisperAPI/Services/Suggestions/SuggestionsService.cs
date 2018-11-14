@@ -2,14 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
 using WhisperAPI.Models;
 using WhisperAPI.Models.MLAPI;
-using WhisperAPI.Models.NLPAPI;
 using WhisperAPI.Models.Queries;
 using WhisperAPI.Models.Search;
 using WhisperAPI.Services.MLAPI.Facets;
-using WhisperAPI.Services.NLPAPI;
 using WhisperAPI.Services.Search;
 [assembly: InternalsVisibleTo("WhisperAPI.Tests")]
 
@@ -21,26 +18,18 @@ namespace WhisperAPI.Services.Suggestions
 
         private readonly IIndexSearch _indexSearch;
 
-        private readonly INlpCall _nlpCall;
-
         private readonly IDocumentFacets _documentFacets;
 
         private readonly IFilterDocuments _filterDocuments;
 
-        private readonly List<string> _irrelevantIntents;
-
         public SuggestionsService(
             IIndexSearch indexSearch,
-            INlpCall nlpCall,
             IDocumentFacets documentFacets,
-            IFilterDocuments filterDocuments,
-            List<string> irrelevantIntents)
+            IFilterDocuments filterDocuments)
         {
             this._indexSearch = indexSearch;
-            this._nlpCall = nlpCall;
             this._documentFacets = documentFacets;
             this._filterDocuments = filterDocuments;
-            this._irrelevantIntents = irrelevantIntents;
         }
 
         public Suggestion GetNewSuggestion(ConversationContext conversationContext, SuggestionQuery query)
@@ -157,7 +146,6 @@ namespace WhisperAPI.Services.Suggestions
 
         public void UpdateContextWithNewQuery(ConversationContext context, SearchQuery searchQuery)
         {
-            searchQuery.Relevant = this.IsQueryRelevant(searchQuery);
             context.SearchQueries.Add(searchQuery);
         }
 
@@ -178,15 +166,6 @@ namespace WhisperAPI.Services.Suggestions
             }
 
             return false;
-        }
-
-        internal bool IsQueryRelevant(SearchQuery searchQuery)
-        {
-            var nlpAnalysis = this._nlpCall.GetNlpAnalysis(searchQuery.Query);
-
-            nlpAnalysis.Intents.ForEach(x => Log.Debug($"Intent - Name: {x.Name}, Confidence: {x.Confidence}"));
-            nlpAnalysis.Entities.ForEach(x => Log.Debug($"Entity - Name: {x.Name}"));
-            return this.IsIntentRelevant(nlpAnalysis);
         }
 
         internal IEnumerable<Document> FilterOutChosenSuggestions(
@@ -312,12 +291,6 @@ namespace WhisperAPI.Services.Suggestions
             return documents;
         }
 
-        private bool IsIntentRelevant(NlpAnalysis nlpAnalysis)
-        {
-            var mostConfidentIntent = nlpAnalysis.Intents.OrderByDescending(x => x.Confidence).First();
-            return !this._irrelevantIntents.Any(x => Regex.IsMatch(mostConfidentIntent.Name, this.WildCardToRegularExpression(x)));
-        }
-
         private bool IsElementValid(ISearchResultElement result)
         {
             if (result?.Title == null || result?.Uri == null || result?.PrintableUri == null)
@@ -327,11 +300,6 @@ namespace WhisperAPI.Services.Suggestions
             }
 
             return true;
-        }
-
-        private string WildCardToRegularExpression(string value)
-        {
-            return "^" + Regex.Escape(value).Replace("\\*", ".*") + "$";
         }
     }
 }

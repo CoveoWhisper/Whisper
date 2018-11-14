@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using WhisperAPI.Models;
 using WhisperAPI.Models.Queries;
 using WhisperAPI.Services.Context;
+using WhisperAPI.Services.NLPAPI;
 using WhisperAPI.Services.Questions;
 using WhisperAPI.Services.Suggestions;
 
@@ -17,16 +18,20 @@ namespace WhisperAPI.Controllers
 
         private readonly IQuestionsService _questionsService;
 
-        public SuggestionsController(ISuggestionsService suggestionsService, IQuestionsService questionsService, IContexts contexts)
+        private readonly INlpCall _nlpService;
+
+        public SuggestionsController(ISuggestionsService suggestionsService, IQuestionsService questionsService, INlpCall nlpService, IContexts contexts)
             : base(contexts)
         {
             this._suggestionsService = suggestionsService;
             this._questionsService = questionsService;
+            this._nlpService = nlpService;
         }
 
         [HttpPost]
         public IActionResult GetSuggestions([FromBody] SearchQuery searchQuery)
         {
+            this._nlpService.UpdateAndAnalyseSearchQuery(searchQuery);
             this._suggestionsService.UpdateContextWithNewQuery(this.ConversationContext, searchQuery);
             this._questionsService.DetectAnswer(this.ConversationContext, searchQuery);
             bool questionAskedDetected = this._questionsService.DetectQuestionAsked(this.ConversationContext, searchQuery);

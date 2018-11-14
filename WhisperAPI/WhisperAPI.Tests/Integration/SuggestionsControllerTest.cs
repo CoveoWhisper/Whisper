@@ -55,15 +55,15 @@ namespace WhisperAPI.Tests.Integration
             var filterDocumentHttpClient = new HttpClient(this._filterDocumentsHttpMessageHandleMock.Object);
 
             var indexSearch = new IndexSearch(null, this._numberOfResults, indexSearchHttpClient, "https://localhost:5000");
-            var nlpCall = new NlpCall(nlpCallHttpClient, "https://localhost:5000");
+            var nlpCall = new NlpCall(nlpCallHttpClient, this.GetIrrelevantIntents(), "https://localhost:5000");
             var documentFacets = new DocumentFacets(documentFacetHttpClient, "https://localhost:5000");
             var filterDocuments = new FilterDocuments(filterDocumentHttpClient, "https://localhost:5000");
 
-            var suggestionsService = new SuggestionsService(indexSearch, nlpCall, documentFacets, filterDocuments, this.GetIrrelevantIntents());
+            var suggestionsService = new SuggestionsService(indexSearch, documentFacets, filterDocuments);
 
             var contexts = new InMemoryContexts(new TimeSpan(1, 0, 0, 0));
             var questionsService = new QuestionsService();
-            this._suggestionController = new SuggestionsController(suggestionsService, questionsService, contexts);
+            this._suggestionController = new SuggestionsController(suggestionsService, questionsService, nlpCall, contexts);
         }
 
         [Test]
@@ -251,7 +251,9 @@ namespace WhisperAPI.Tests.Integration
             var jsonSearchQuery = "{\"chatkey\": \"aecaa8db-abc8-4ac9-aa8d-87987da2dbb0\",\"Query\": \"Need help with CoveoSearch API\",\"Type\": 1,\"command\": \"sudo ls\",\"maxDocuments\": \"10\",\"maxQuestions\": \"10\" }";
             var questions = GetQuestions();
 
-            this.NlpCallHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(this.GetRelevantNlpAnalysis())));
+            var nlpResult = this.GetRelevantNlpAnalysis();
+            //nlpResult.ParsedQuery = "Need help with CoveoSearch API";
+            this.NlpCallHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(nlpResult)));
             this.IndexSearchHttpMessageHandleMock(HttpStatusCode.OK, this.GetSearchResultStringContent());
             this.DocumentFacetsHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(questions)));
 
