@@ -15,6 +15,7 @@ using WhisperAPI.Controllers;
 using WhisperAPI.Models;
 using WhisperAPI.Models.Queries;
 using WhisperAPI.Services.Context;
+using WhisperAPI.Services.NLPAPI;
 using WhisperAPI.Services.Questions;
 using WhisperAPI.Services.Suggestions;
 using WhisperAPI.Tests.Data.Builders;
@@ -31,6 +32,7 @@ namespace WhisperAPI.Tests.Unit
 
         private Mock<ISuggestionsService> _suggestionServiceMock;
         private Mock<IQuestionsService> _questionsServiceMock;
+        private Mock<INlpCall> _nlpServiceMock;
         private SuggestionsController _suggestionController;
         private InMemoryContexts _contexts;
 
@@ -79,7 +81,9 @@ namespace WhisperAPI.Tests.Unit
 
             this._questionsServiceMock = new Mock<IQuestionsService>();
 
-            this._suggestionController = new SuggestionsController(this._suggestionServiceMock.Object, this._questionsServiceMock.Object, this._contexts);
+            this._nlpServiceMock = new Mock<INlpCall>();
+
+            this._suggestionController = new SuggestionsController(this._suggestionServiceMock.Object, this._questionsServiceMock.Object, this._nlpServiceMock.Object, this._contexts);
 
             SearchQuery query = this._invalidSearchQueryList[invalidQueryIndex];
 
@@ -108,7 +112,9 @@ namespace WhisperAPI.Tests.Unit
 
             this._questionsServiceMock = new Mock<IQuestionsService>();
 
-            this._suggestionController = new SuggestionsController(this._suggestionServiceMock.Object, this._questionsServiceMock.Object, this._contexts);
+            this._nlpServiceMock = new Mock<INlpCall>();
+
+            this._suggestionController = new SuggestionsController(this._suggestionServiceMock.Object, this._questionsServiceMock.Object, this._nlpServiceMock.Object, this._contexts);
 
             this._suggestionController.OnActionExecuting(this.GetActionExecutingContext(query));
 
@@ -133,7 +139,10 @@ namespace WhisperAPI.Tests.Unit
             SelectQuery query = this._invalidSelectQueryList[invalidQueryIndex];
 
             this._questionsServiceMock = new Mock<IQuestionsService>();
-            this._suggestionController = new SuggestionsController(this._suggestionServiceMock.Object, this._questionsServiceMock.Object, this._contexts);
+
+            this._nlpServiceMock = new Mock<INlpCall>();
+
+            this._suggestionController = new SuggestionsController(this._suggestionServiceMock.Object, this._questionsServiceMock.Object, this._nlpServiceMock.Object, this._contexts);
             var actionContext = this.GetActionExecutingContext(query);
             this._suggestionController.OnActionExecuting(actionContext);
             actionContext.Result.Should().BeOfType<BadRequestObjectResult>();
@@ -152,7 +161,9 @@ namespace WhisperAPI.Tests.Unit
 
             this._questionsServiceMock = new Mock<IQuestionsService>();
 
-            this._suggestionController = new SuggestionsController(this._suggestionServiceMock.Object, this._questionsServiceMock.Object, this._contexts);
+            this._nlpServiceMock = new Mock<INlpCall>();
+
+            this._suggestionController = new SuggestionsController(this._suggestionServiceMock.Object, this._questionsServiceMock.Object, this._nlpServiceMock.Object, this._contexts);
 
             this._suggestionController.OnActionExecuting(this.GetActionExecutingContext(query));
             this._suggestionController.SelectSuggestion(this._validSelectQueryList[validQueryIndex]).Should().BeEquivalentTo(new OkResult());
@@ -173,7 +184,9 @@ namespace WhisperAPI.Tests.Unit
                 .WithFacet(facet)
                 .Instance;
 
-            this._suggestionController = new SuggestionsController(this._suggestionServiceMock.Object, this._questionsServiceMock.Object, this._contexts);
+            this._nlpServiceMock = new Mock<INlpCall>();
+
+            this._suggestionController = new SuggestionsController(this._suggestionServiceMock.Object, this._questionsServiceMock.Object, this._nlpServiceMock.Object, this._contexts);
 
             this._suggestionController.OnActionExecuting(this.GetActionExecutingContext(query));
             this._suggestionController.AddFilter(query);
@@ -202,7 +215,9 @@ namespace WhisperAPI.Tests.Unit
                 .WithFacet(facet)
                 .Instance;
 
-            this._suggestionController = new SuggestionsController(this._suggestionServiceMock.Object, this._questionsServiceMock.Object, this._contexts);
+            this._nlpServiceMock = new Mock<INlpCall>();
+
+            this._suggestionController = new SuggestionsController(this._suggestionServiceMock.Object, this._questionsServiceMock.Object, this._nlpServiceMock.Object, this._contexts);
 
             this._suggestionController.OnActionExecuting(this.GetActionExecutingContext(query));
             this._suggestionController.AddFilter(query);

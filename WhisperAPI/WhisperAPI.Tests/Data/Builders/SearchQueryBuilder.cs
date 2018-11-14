@@ -9,6 +9,8 @@ namespace WhisperAPI.Tests.Data.Builders
 
         private string _query;
 
+        private string _preProcessedQuery;
+
         private SearchQuery.MessageType _type;
 
         private bool _relevant;
@@ -23,6 +25,7 @@ namespace WhisperAPI.Tests.Data.Builders
         {
             ChatKey = this._chatKey,
             Query = this._query,
+            FilteredQuery = this._preProcessedQuery,
             Type = this._type,
             MaxDocuments = this._maxDocuments,
             MaxQuestions = this._maxQuestions,
@@ -33,10 +36,11 @@ namespace WhisperAPI.Tests.Data.Builders
         {
             this._chatKey = Guid.NewGuid();
             this._query = "Test";
+            this._preProcessedQuery = "Test";
             this._type = SearchQuery.MessageType.Customer;
             this._maxDocuments = 10;
             this._maxQuestions = 10;
-            this._relevant = true;
+            this._relevant = false;
         }
 
         public SearchQueryBuilder WithChatKey(Guid? chatKey)
@@ -48,6 +52,12 @@ namespace WhisperAPI.Tests.Data.Builders
         public SearchQueryBuilder WithQuery(string query)
         {
             this._query = query;
+            return this;
+        }
+
+        public SearchQueryBuilder WithPreProcessedQuery(string query)
+        {
+            this._preProcessedQuery = query;
             return this;
         }
 
