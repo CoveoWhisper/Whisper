@@ -183,7 +183,7 @@ namespace WhisperAPI.Tests.Unit
             var query = FilterQueryBuilder.Build
                 .WithFacet(facet)
                 .Instance;
-            
+
             this._nlpServiceMock = new Mock<INlpCall>();
 
             this._suggestionController = new SuggestionsController(this._suggestionServiceMock.Object, this._questionsServiceMock.Object, this._nlpServiceMock.Object, this._contexts);

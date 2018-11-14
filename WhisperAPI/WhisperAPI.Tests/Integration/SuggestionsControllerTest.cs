@@ -252,7 +252,7 @@ namespace WhisperAPI.Tests.Integration
             var questions = GetQuestions();
 
             var nlpResult = this.GetRelevantNlpAnalysis();
-            nlpResult.ParsedQuery = "Need help with CoveoSearch API";
+            //nlpResult.ParsedQuery = "Need help with CoveoSearch API";
             this.NlpCallHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(nlpResult)));
             this.IndexSearchHttpMessageHandleMock(HttpStatusCode.OK, this.GetSearchResultStringContent());
             this.DocumentFacetsHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(questions)));

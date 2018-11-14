@@ -53,6 +53,9 @@ namespace WhisperAPI.Tests.Unit
 
             var searchQuery = SearchQueryBuilder.Build.WithQuery(sentence).Instance;
             this._nlpCall.UpdateAndAnalyseSearchQuery(searchQuery);
+
+            searchQuery.Relevant.Should().BeTrue();
+            searchQuery.FilteredQuery.Should().BeEquivalentTo(nlpAnalysis.ParsedQuery);
         }
 
         [Test]
@@ -127,10 +130,6 @@ namespace WhisperAPI.Tests.Unit
         public void When_Intent_With_and_without_Wildcard_is_irrelevant(string wildcardString)
         {
             var searchQuery = SearchQueryBuilder.Build.WithQuery("I like C#").Instance;
-            var intentsFromApi = new List<string>
-            {
-                wildcardString
-            };
 
             var intentsFromNLP = new List<Intent>
             {
@@ -156,20 +155,25 @@ namespace WhisperAPI.Tests.Unit
         }
 
         [Test]
-        [TestCase("smalltalk.*")]
+        [TestCase("*#")]
+        [TestCase("I*")]
+        [TestCase("*like*")]
+        [TestCase("I*i*C*")]
+        [TestCase("I like C#")]
         public void When_Intent_is_relevant(string wildcardString)
         {
             var searchQuery = SearchQueryBuilder.Build.WithQuery("I like C#").Instance;
 
             var intentsFromNLP = new List<Intent>
             {
-                IntentBuilder.Build.WithName("I like C#").Instance
+                IntentBuilder.Build.WithName("You prefer JAVA").Instance
             };
 
             var nlpAnalysis = NlpAnalysisBuilder.Build.WithIntents(intentsFromNLP).Instance;
             const string baseAddress = "http://localhost:5000";
+
             this._httpClient = new HttpClient(this._httpMessageHandlerMock.Object);
-            this._nlpCall = new NlpCall(this._httpClient, this.GetIrrelevantIntents(), baseAddress);
+            this._nlpCall = new NlpCall(this._httpClient, new List<string> { wildcardString }, baseAddress);
 
             this._httpMessageHandlerMock.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
