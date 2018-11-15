@@ -8,6 +8,8 @@ using WhisperAPI.Models.Queries;
 using WhisperAPI.Models.Search;
 using WhisperAPI.Services.MLAPI.Facets;
 using WhisperAPI.Services.Search;
+using WhisperAPI.Settings;
+
 [assembly: InternalsVisibleTo("WhisperAPI.Tests")]
 
 namespace WhisperAPI.Services.Suggestions
@@ -22,38 +24,36 @@ namespace WhisperAPI.Services.Suggestions
 
         private readonly IFilterDocuments _filterDocuments;
 
+        private readonly RecommenderSettings _recommenderSettings;
+
         public SuggestionsService(
             IIndexSearch indexSearch,
             IDocumentFacets documentFacets,
-            IFilterDocuments filterDocuments)
+            IFilterDocuments filterDocuments,
+            RecommenderSettings recommenderSettings)
         {
             this._indexSearch = indexSearch;
             this._documentFacets = documentFacets;
             this._filterDocuments = filterDocuments;
+            this._recommenderSettings = recommenderSettings;
         }
 
         public Suggestion GetNewSuggestion(ConversationContext conversationContext, SuggestionQuery query)
         {
-            // TODO which recommenders to use, propagate from config
-            bool useLongQuerySearchReccomender = true;
-            bool usePreprocessedQuerySearchReccomender = true;
-            bool useAnalyticsSearchReccomender = true;
-            bool useFacetQuestionRecommender = true;
-
             var allRecommendedDocuments = new List<IEnumerable<Recommendation<Document>>>();
             var allRecommendedQuestions = new List<IEnumerable<Recommendation<Question>>>();
 
-            if (useLongQuerySearchReccomender)
+            if (this._recommenderSettings.UseLongQuerySearchRecommender)
             {
                 allRecommendedDocuments.Add(this.GetLongQuerySearchRecommendations(conversationContext).ToList());
             }
 
-            if (usePreprocessedQuerySearchReccomender)
+            if (this._recommenderSettings.UsePreprocessedQuerySearchReccomender)
             {
                 // TODO
             }
 
-            if (useAnalyticsSearchReccomender)
+            if (this._recommenderSettings.UseAnalyticsSearchReccomender)
             {
                 // TODO
             }
@@ -61,23 +61,20 @@ namespace WhisperAPI.Services.Suggestions
             // TODO ensure documents are filtered, here, in the calls or afterwards
             var mergedDocuments = this.MergeRecommendedDocuments(allRecommendedDocuments);
 
-            if (useFacetQuestionRecommender)
+            if (mergedDocuments.Any() && this._recommenderSettings.UseFacetQuestionRecommender)
             {
                 allRecommendedQuestions.Add(this.GenerateQuestions(conversationContext, mergedDocuments.Select(d => d.Value)).Take(query.MaxQuestions));
             }
 
             var mergedQuestions = this.MergeRecommendedQuestions(allRecommendedQuestions).Take(query.MaxQuestions);
 
-            List<Facet> activeFacets = GetActiveFacets(conversationContext).ToList();
+            var activeFacets = GetActiveFacets(conversationContext).ToList();
             if (activeFacets.Any())
             {
                 var documentUris = this.FilterDocumentsByFacet(mergedDocuments.Select(r => r.Value), conversationContext.FilterDocumentsParameters.MustHaveFacets);
                 var keptDocumentsUris = new HashSet<string>(documentUris);
                 mergedDocuments = mergedDocuments.Where(r => keptDocumentsUris.Contains(r.Value.Uri));
             }
-
-            // TODO I don't think this is used
-            // UpdateContextWithNewSuggestions(conversationContext, allRecommendedDocuments);
 
             var suggestion = new Suggestion
             {
@@ -86,36 +83,9 @@ namespace WhisperAPI.Services.Suggestions
                 Questions = mergedQuestions.Select(r => r.ConvertValue(QuestionToClient.FromQuestion)).ToList()
             };
 
+            UpdateContextWithNewSuggestions(conversationContext, suggestion.Documents.Select(r => r.Value));
+
             return suggestion;
-        }
-
-        // We assurme that every list of recommendations is already filtered by confidence descending
-        internal IEnumerable<Recommendation<Document>> MergeRecommendedDocuments(List<IEnumerable<Recommendation<Document>>> allRecommendedDocuments)
-        {
-            // The algorithm will take the max confidence for every document.
-            // If a document appear multiple times, it has more chance to get higher (because it is a max with more arguments)
-            // This algorithm can change
-
-            return allRecommendedDocuments.SelectMany(x => x)
-                .GroupBy(r => r.Value.Uri)
-                .Select(group => new Recommendation<Document>
-                {
-                    Value = group.First().Value,
-                    Confidence = group.Select(r => r.Confidence).Max(),
-                    RecommendedBy = group.SelectMany(r => r.RecommendedBy).ToList()
-                });
-        }
-
-        internal IEnumerable<Recommendation<Question>> MergeRecommendedQuestions(List<IEnumerable<Recommendation<Question>>> allRecommendedQuestions)
-        {
-            // Modify if same questions can appear multiple times
-            return allRecommendedQuestions.SelectMany(x => x).OrderByDescending(r => r.Confidence);
-        }
-
-        public Suggestion GetLastSuggestion(ConversationContext conversationContext, SuggestionQuery query)
-        {
-            // TODO: Delete this method ?
-            throw new NotImplementedException();
         }
 
         public IEnumerable<Recommendation<Document>> GetLongQuerySearchRecommendations(ConversationContext conversationContext)
@@ -127,10 +97,8 @@ namespace WhisperAPI.Services.Suggestions
                 return new List<Recommendation<Document>>();
             }
 
-            // TODO: why suggested documents
             var coveoIndexDocuments = this.SearchCoveoIndex(allRelevantQueries, conversationContext.SuggestedDocuments.ToList());
 
-            // TODO return recommendations with confidence and recommender type
             var documentsFiltered = this.FilterOutChosenSuggestions(coveoIndexDocuments, conversationContext.SearchQueries);
 
             return documentsFiltered.Select(d => new Recommendation<Document>
@@ -166,6 +134,28 @@ namespace WhisperAPI.Services.Suggestions
             }
 
             return false;
+        }
+
+        // We assume that every list of recommendations is already filtered by confidence descending
+        internal IEnumerable<Recommendation<Document>> MergeRecommendedDocuments(List<IEnumerable<Recommendation<Document>>> allRecommendedDocuments)
+        {
+            // The algorithm will take the max confidence for every document.
+            // If a document appear multiple times, it has more chance to get higher (because it is a max with more arguments)
+            // This algorithm can change
+            return allRecommendedDocuments.SelectMany(x => x)
+                .GroupBy(r => r.Value.Uri)
+                .Select(group => new Recommendation<Document>
+                {
+                    Value = group.First().Value,
+                    Confidence = group.Select(r => r.Confidence).Max(),
+                    RecommendedBy = group.SelectMany(r => r.RecommendedBy).ToList()
+                });
+        }
+
+        internal IEnumerable<Recommendation<Question>> MergeRecommendedQuestions(List<IEnumerable<Recommendation<Question>>> allRecommendedQuestions)
+        {
+            // Modify if same questions can appear multiple times
+            return allRecommendedQuestions.SelectMany(x => x).OrderByDescending(r => r.Confidence);
         }
 
         internal IEnumerable<Document> FilterOutChosenSuggestions(
@@ -209,7 +199,7 @@ namespace WhisperAPI.Services.Suggestions
             }).ToList();
         }
 
-        private static void UpdateContextWithNewSuggestions(ConversationContext context, List<Document> documents)
+        private static void UpdateContextWithNewSuggestions(ConversationContext context, IEnumerable<Document> documents)
         {
             foreach (var document in documents)
             {
@@ -217,7 +207,7 @@ namespace WhisperAPI.Services.Suggestions
             }
         }
 
-        private static void UpdateContextWithNewQuestions(ConversationContext context, List<Question> questions)
+        private static void UpdateContextWithNewQuestions(ConversationContext context, IEnumerable<Question> questions)
         {
             context.LastSuggestedQuestions.Clear();
             foreach (var question in questions)
@@ -283,7 +273,7 @@ namespace WhisperAPI.Services.Suggestions
             {
                 if (this.IsElementValid(result))
                 {
-                    Document document = suggestedDocuments.Find(x => x.Uri == result.Uri) ?? new Document(result);
+                    var document = suggestedDocuments.Find(x => x.Uri == result.Uri) ?? new Document(result);
                     documents.Add(document);
                 }
             }

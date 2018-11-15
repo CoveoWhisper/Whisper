@@ -52,7 +52,7 @@ namespace WhisperAPI.Controllers
         {
             Log.Debug($"SuggestionQuery: {suggestionQuery}");
 
-            var suggestion = this._suggestionsService.GetLastSuggestion(this.ConversationContext, suggestionQuery);
+            var suggestion = this._suggestionsService.GetNewSuggestion(this.ConversationContext, suggestionQuery);
 
             LogSuggestion(suggestion);
 

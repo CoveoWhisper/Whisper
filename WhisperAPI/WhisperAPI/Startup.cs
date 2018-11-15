@@ -48,6 +48,8 @@ namespace WhisperAPI
             var applicationSettings = new ApplicationSettings();
             this.Configuration.Bind(applicationSettings);
 
+            var recommenderSettings = services.Configure<RecommenderSettings>(this.Configuration.GetSection("Recommender"));
+
             ConfigureDependency(services, applicationSettings);
         }
 
@@ -77,7 +79,8 @@ namespace WhisperAPI
                 x => new SuggestionsService(
                     x.GetService<IIndexSearch>(),
                     x.GetService<IDocumentFacets>(),
-                    x.GetService<IFilterDocuments>()));
+                    x.GetService<IFilterDocuments>(),
+                    x.GetService<RecommenderSettings>()));
 
             services.AddTransient<IQuestionsService>(x => new QuestionsService());
 
