@@ -29,16 +29,19 @@ namespace WhisperAPI.Services.NLPAPI
             this.InitHttpClient();
         }
 
-        public void UpdateAndAnalyseSearchQuery(SearchQuery searchQuery)
+        public NlpAnalysis AnalyseSearchQuery(SearchQuery searchQuery)
         {
-            var nlpAnalysis = this.GetNlpAnalysis(searchQuery.Query);
+            var response = this._httpClient.PostAsync("NLP/Analyze", CreateStringContent(searchQuery.Query)).Result;
+            response.EnsureSuccessStatusCode();
+            var nlpAnalysis = JsonConvert.DeserializeObject<NlpAnalysis>(response.Content.ReadAsStringAsync().Result);
+
             if (nlpAnalysis == null)
             {
-                return;
+                return null;
             }
 
             searchQuery.Relevant = this.IsQueryRelevant(nlpAnalysis);
-            searchQuery.FilteredQuery = nlpAnalysis.ParsedQuery;
+            return nlpAnalysis;
         }
 
         internal bool IsQueryRelevant(NlpAnalysis nlpAnalysis)
@@ -53,13 +56,13 @@ namespace WhisperAPI.Services.NLPAPI
             return new StringContent($"{{\"sentence\": \"{sentence}\"}}", Encoding.UTF8, "application/json");
         }
 
-        private NlpAnalysis GetNlpAnalysis(string sentence)
+        /*private NlpAnalysis GetNlpAnalysis(string sentence)
         {
             var response = this._httpClient.PostAsync("NLP/Analyze", CreateStringContent(sentence)).Result;
             response.EnsureSuccessStatusCode();
 
             return JsonConvert.DeserializeObject<NlpAnalysis>(response.Content.ReadAsStringAsync().Result);
-        }
+        }*/
 
         private void InitHttpClient()
         {

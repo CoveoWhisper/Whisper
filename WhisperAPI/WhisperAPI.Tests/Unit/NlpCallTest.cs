@@ -37,7 +37,7 @@ namespace WhisperAPI.Tests.Unit
                 IntentBuilder.Build.WithName("Need Help").Instance
             };
 
-            var nlpAnalysis = NlpAnalysisBuilder.Build.WithIntents(intents).Instance;
+            var analysis = NlpAnalysisBuilder.Build.WithIntents(intents).Instance;
             const string baseAddress = "http://localhost:5000";
 
             this._httpClient = new HttpClient(this._httpMessageHandlerMock.Object);
@@ -48,14 +48,14 @@ namespace WhisperAPI.Tests.Unit
                 .Returns(Task.FromResult(new HttpResponseMessage
                 {
                     StatusCode = System.Net.HttpStatusCode.OK,
-                    Content = new StringContent(JsonConvert.SerializeObject(nlpAnalysis))
+                    Content = new StringContent(JsonConvert.SerializeObject(analysis))
                 }));
 
             var searchQuery = SearchQueryBuilder.Build.WithQuery(sentence).Instance;
-            this._nlpCall.UpdateAndAnalyseSearchQuery(searchQuery);
+            var nlpAnalysis = this._nlpCall.AnalyseSearchQuery(searchQuery);
 
             searchQuery.Relevant.Should().BeTrue();
-            searchQuery.FilteredQuery.Should().BeEquivalentTo(nlpAnalysis.ParsedQuery);
+            nlpAnalysis.ParsedQuery.Should().BeEquivalentTo(nlpAnalysis.ParsedQuery);
         }
 
         [Test]
@@ -76,7 +76,7 @@ namespace WhisperAPI.Tests.Unit
                 }));
 
             var searchQuery = SearchQueryBuilder.Build.WithQuery(sentence).Instance;
-            Assert.Throws<HttpRequestException>(() => this._nlpCall.UpdateAndAnalyseSearchQuery(searchQuery));
+            Assert.Throws<HttpRequestException>(() => this._nlpCall.AnalyseSearchQuery(searchQuery));
         }
 
         [Test]
@@ -97,7 +97,7 @@ namespace WhisperAPI.Tests.Unit
                 }));
 
             var searchQuery = SearchQueryBuilder.Build.WithQuery(sentence).Instance;
-            Assert.Throws<HttpRequestException>(() => this._nlpCall.UpdateAndAnalyseSearchQuery(searchQuery));
+            Assert.Throws<HttpRequestException>(() => this._nlpCall.AnalyseSearchQuery(searchQuery));
         }
 
         [Test]
@@ -118,7 +118,8 @@ namespace WhisperAPI.Tests.Unit
                 }));
 
             var searchQuery = SearchQueryBuilder.Build.WithQuery(sentence).Instance;
-            this._nlpCall.UpdateAndAnalyseSearchQuery(searchQuery);
+            var nlpAnalysis = this._nlpCall.AnalyseSearchQuery(searchQuery);
+            nlpAnalysis.Should().Be(null);
         }
 
         [Test]
@@ -150,7 +151,7 @@ namespace WhisperAPI.Tests.Unit
                     Content = new StringContent(JsonConvert.SerializeObject(nlpAnalysis))
                 }));
 
-            this._nlpCall.UpdateAndAnalyseSearchQuery(searchQuery);
+            this._nlpCall.AnalyseSearchQuery(searchQuery);
             searchQuery.Relevant.Should().BeFalse();
         }
 
@@ -183,7 +184,7 @@ namespace WhisperAPI.Tests.Unit
                     Content = new StringContent(JsonConvert.SerializeObject(nlpAnalysis))
                 }));
 
-            this._nlpCall.UpdateAndAnalyseSearchQuery(searchQuery);
+            this._nlpCall.AnalyseSearchQuery(searchQuery);
             searchQuery.Relevant.Should().BeTrue();
         }
 

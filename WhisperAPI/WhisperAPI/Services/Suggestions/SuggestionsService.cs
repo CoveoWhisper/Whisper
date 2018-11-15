@@ -47,7 +47,7 @@ namespace WhisperAPI.Services.Suggestions
 
         public IEnumerable<Document> GetDocuments(ConversationContext conversationContext)
         {
-            var allRelevantQueries = string.Join(" ", conversationContext.SearchQueries.Where(x => x.Relevant).Select(m => m.Query));
+            var allRelevantQueries = string.Join(" ", conversationContext.ContextItems.Where(x => x.SearchQuery.Relevant).Select(m => m.SearchQuery.Query));
 
             if (string.IsNullOrEmpty(allRelevantQueries.Trim()))
             {
@@ -56,12 +56,12 @@ namespace WhisperAPI.Services.Suggestions
 
             var coveoIndexDocuments = this.SearchCoveoIndex(allRelevantQueries, conversationContext.SuggestedDocuments.ToList());
 
-            return this.FilterOutChosenSuggestions(coveoIndexDocuments, conversationContext.SearchQueries);
+            return this.FilterOutChosenSuggestions(coveoIndexDocuments, conversationContext.ContextItems);
         }
 
-        public void UpdateContextWithNewQuery(ConversationContext context, SearchQuery searchQuery)
+        public void UpdateContextWithNewItem(ConversationContext context, ContextItem contextItem)
         {
-            context.SearchQueries.Add(searchQuery);
+            context.ContextItems.Add(contextItem);
         }
 
         public bool UpdateContextWithSelectedSuggestion(ConversationContext conversationContext, Guid selectQueryId)
@@ -85,10 +85,10 @@ namespace WhisperAPI.Services.Suggestions
 
         internal IEnumerable<Document> FilterOutChosenSuggestions(
             IEnumerable<Document> coveoIndexDocuments,
-            IEnumerable<SearchQuery> queriesList)
+            IEnumerable<ContextItem> queriesList)
         {
             var queries = queriesList
-                .Select(x => x.Query)
+                .Select(x => x.SearchQuery.Query)
                 .ToList();
 
             return coveoIndexDocuments.Where(x => !queries.Any(y => y.Contains(x.Uri)));

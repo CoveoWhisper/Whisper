@@ -25,7 +25,6 @@ namespace WhisperAPI.Tests.Data.Builders
         {
             ChatKey = this._chatKey,
             Query = this._query,
-            FilteredQuery = this._preProcessedQuery,
             Type = this._type,
             MaxDocuments = this._maxDocuments,
             MaxQuestions = this._maxQuestions,

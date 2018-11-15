@@ -29,7 +29,7 @@ namespace WhisperAPI.Services.Context
             get
             {
                 ConversationContext conversationContext = this.ConversationContexts
-                    .Include(x => x.SearchQueries)
+                    .Include(x => x.ContextItems)
                     .Include(x => x.SuggestedDocuments)
                     .FirstOrDefault(x => x.ChatKey == chatKey);
 

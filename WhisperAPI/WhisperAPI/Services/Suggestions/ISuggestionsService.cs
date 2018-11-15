@@ -13,7 +13,7 @@ namespace WhisperAPI.Services.Suggestions
 
         IEnumerable<Document> GetDocuments(ConversationContext conversationContext);
 
-        void UpdateContextWithNewQuery(ConversationContext conversationContext, SearchQuery searchQuery);
+        void UpdateContextWithNewItem(ConversationContext context, ContextItem contextItem);
 
         bool UpdateContextWithSelectedSuggestion(ConversationContext conversationContext, Guid selectQueryId);
     }
