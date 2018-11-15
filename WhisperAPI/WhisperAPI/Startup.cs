@@ -48,9 +48,10 @@ namespace WhisperAPI
             var applicationSettings = new ApplicationSettings();
             this.Configuration.Bind(applicationSettings);
 
-            var recommenderSettings = services.Configure<RecommenderSettings>(this.Configuration.GetSection("Recommender"));
+            var recommenderSettings = new RecommenderSettings();
+            this.Configuration.GetSection("Recommender").Bind(recommenderSettings);
 
-            ConfigureDependency(services, applicationSettings);
+            ConfigureDependency(services, applicationSettings, recommenderSettings);
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
@@ -73,14 +74,14 @@ namespace WhisperAPI
             app.UseMvc();
         }
 
-        private static void ConfigureDependency(IServiceCollection services, ApplicationSettings applicationSettings)
+        private static void ConfigureDependency(IServiceCollection services, ApplicationSettings applicationSettings, RecommenderSettings recommenderSettings)
         {
             services.AddTransient<ISuggestionsService>(
                 x => new SuggestionsService(
                     x.GetService<IIndexSearch>(),
                     x.GetService<IDocumentFacets>(),
                     x.GetService<IFilterDocuments>(),
-                    x.GetService<RecommenderSettings>()));
+                    recommenderSettings));
 
             services.AddTransient<IQuestionsService>(x => new QuestionsService());
 
