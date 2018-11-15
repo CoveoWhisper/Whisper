@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using Newtonsoft.Json.Converters;
 
 namespace WhisperAPI.Models
 {
+    [Newtonsoft.Json.JsonConverter(typeof(StringEnumConverter))]
     public enum RecommenderType
     {
         LongQuerySearch,
