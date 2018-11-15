@@ -56,14 +56,6 @@ namespace WhisperAPI.Services.NLPAPI
             return new StringContent($"{{\"sentence\": \"{sentence}\"}}", Encoding.UTF8, "application/json");
         }
 
-        /*private NlpAnalysis GetNlpAnalysis(string sentence)
-        {
-            var response = this._httpClient.PostAsync("NLP/Analyze", CreateStringContent(sentence)).Result;
-            response.EnsureSuccessStatusCode();
-
-            return JsonConvert.DeserializeObject<NlpAnalysis>(response.Content.ReadAsStringAsync().Result);
-        }*/
-
         private void InitHttpClient()
         {
             this._httpClient.BaseAddress = new Uri(this._baseAddress);
