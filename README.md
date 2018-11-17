@@ -1,4 +1,4 @@
-![development branch](https://travis-ci.org/CoveoWhisper/WhisperAPI.svg?branch=master)
+![development branch](https://travis-ci.org/CoveoWhisper/WhisperAPI.svg?branch=development)
 
 # Whisper
 
