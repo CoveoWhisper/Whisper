@@ -5,6 +5,7 @@ using NUnit.Framework;
 using WhisperAPI.Models;
 using WhisperAPI.Models.Queries;
 using WhisperAPI.Services.Context;
+using WhisperAPI.Tests.Data.Builders;
 
 namespace WhisperAPI.Tests.Unit
 {
@@ -100,15 +101,13 @@ namespace WhisperAPI.Tests.Unit
 
         private static ContextItem GetContextItem(string query, string chatKey)
         {
-            return new ContextItem
-            {
-                SearchQuery = new SearchQuery
-                {
-                    ChatKey = new Guid(chatKey),
-                    Query = query,
-                    Type = SearchQuery.MessageType.Customer
-                }
-            };
+            return ContextItemBuilder.Build
+                .WithSearchQuery(SearchQueryBuilder.Build
+                    .WithChatKey(new Guid(chatKey))
+                    .WithQuery(query)
+                    .WithMessageType(SearchQuery.MessageType.Customer)
+                    .Instance)
+                .Instance;
         }
 
         private static Document GetDocument()

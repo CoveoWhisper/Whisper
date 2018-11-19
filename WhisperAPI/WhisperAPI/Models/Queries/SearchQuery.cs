@@ -21,8 +21,5 @@ namespace WhisperAPI.Models.Queries
         [Required(ErrorMessage = "Type is required")]
         [JsonProperty("type")]
         public MessageType? Type { get; set; }
-
-        [JsonIgnore]
-        public bool Relevant { get; set; }
     }
 }

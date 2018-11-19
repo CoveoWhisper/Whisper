@@ -8,5 +8,7 @@ namespace WhisperAPI.Models
         public SearchQuery SearchQuery { get; set; }
 
         public NlpAnalysis NlpAnalysis { get; set; }
+
+        public bool Relevant { get; set; }
     }
 }

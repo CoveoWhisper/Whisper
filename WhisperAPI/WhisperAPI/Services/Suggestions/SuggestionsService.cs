@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using WhisperAPI.Models;
 using WhisperAPI.Models.MLAPI;
+using WhisperAPI.Models.NLPAPI;
 using WhisperAPI.Models.Queries;
 using WhisperAPI.Models.Search;
 using WhisperAPI.Services.MLAPI.Facets;
@@ -47,7 +48,7 @@ namespace WhisperAPI.Services.Suggestions
 
         public IEnumerable<Document> GetDocuments(ConversationContext conversationContext)
         {
-            var allRelevantQueries = string.Join(" ", conversationContext.ContextItems.Where(x => x.SearchQuery.Relevant).Select(m => m.SearchQuery.Query));
+            var allRelevantQueries = string.Join(" ", conversationContext.ContextItems.Where(x => x.Relevant).Select(m => m.SearchQuery.Query));
 
             if (string.IsNullOrEmpty(allRelevantQueries.Trim()))
             {
@@ -59,9 +60,14 @@ namespace WhisperAPI.Services.Suggestions
             return this.FilterOutChosenSuggestions(coveoIndexDocuments, conversationContext.ContextItems);
         }
 
-        public void UpdateContextWithNewItem(ConversationContext context, ContextItem contextItem)
+        public void UpdateContextWithNewItem(ConversationContext context, NlpAnalysis nlpAnalysis, SearchQuery searchQuery, bool isRelevant)
         {
-            context.ContextItems.Add(contextItem);
+            context.ContextItems.Add(new ContextItem
+            {
+                NlpAnalysis = nlpAnalysis,
+                SearchQuery = searchQuery,
+                Relevant = isRelevant,
+            });
         }
 
         public bool UpdateContextWithSelectedSuggestion(ConversationContext conversationContext, Guid selectQueryId)

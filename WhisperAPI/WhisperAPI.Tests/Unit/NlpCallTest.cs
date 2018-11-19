@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,7 +9,6 @@ using Moq.Protected;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using WhisperAPI.Models.NLPAPI;
-using WhisperAPI.Models.Queries;
 using WhisperAPI.Services.NLPAPI;
 using WhisperAPI.Tests.Data.Builders;
 
@@ -52,9 +52,9 @@ namespace WhisperAPI.Tests.Unit
                 }));
 
             var searchQuery = SearchQueryBuilder.Build.WithQuery(sentence).Instance;
-            var nlpAnalysis = this._nlpCall.AnalyseSearchQuery(searchQuery);
+            var nlpAnalysis = this._nlpCall.AnalyzeSearchQuery(searchQuery, out bool relevant);
 
-            searchQuery.Relevant.Should().BeTrue();
+            relevant.Should().BeTrue();
             nlpAnalysis.ParsedQuery.Should().BeEquivalentTo(nlpAnalysis.ParsedQuery);
         }
 
@@ -76,7 +76,7 @@ namespace WhisperAPI.Tests.Unit
                 }));
 
             var searchQuery = SearchQueryBuilder.Build.WithQuery(sentence).Instance;
-            Assert.Throws<HttpRequestException>(() => this._nlpCall.AnalyseSearchQuery(searchQuery));
+            Assert.Throws<HttpRequestException>(() => this._nlpCall.AnalyzeSearchQuery(searchQuery, out bool relevant));
         }
 
         [Test]
@@ -97,12 +97,12 @@ namespace WhisperAPI.Tests.Unit
                 }));
 
             var searchQuery = SearchQueryBuilder.Build.WithQuery(sentence).Instance;
-            Assert.Throws<HttpRequestException>(() => this._nlpCall.AnalyseSearchQuery(searchQuery));
+            Assert.Throws<HttpRequestException>(() => this._nlpCall.AnalyzeSearchQuery(searchQuery, out bool relevant));
         }
 
         [Test]
         [TestCase("Test")]
-        public void When_receive_ok_response_with_empty_content_from_post_then_returns_null(string sentence)
+        public void When_receive_ok_response_with_empty_content_from_post_then_throws_exception(string sentence)
         {
             const string baseAddress = "http://localhost:5000";
 
@@ -118,8 +118,7 @@ namespace WhisperAPI.Tests.Unit
                 }));
 
             var searchQuery = SearchQueryBuilder.Build.WithQuery(sentence).Instance;
-            var nlpAnalysis = this._nlpCall.AnalyseSearchQuery(searchQuery);
-            nlpAnalysis.Should().Be(null);
+            Assert.Throws<FormatException>(() => this._nlpCall.AnalyzeSearchQuery(searchQuery, out bool relevant));
         }
 
         [Test]
@@ -151,8 +150,8 @@ namespace WhisperAPI.Tests.Unit
                     Content = new StringContent(JsonConvert.SerializeObject(nlpAnalysis))
                 }));
 
-            this._nlpCall.AnalyseSearchQuery(searchQuery);
-            searchQuery.Relevant.Should().BeFalse();
+            this._nlpCall.AnalyzeSearchQuery(searchQuery, out bool relevant);
+            relevant.Should().BeFalse();
         }
 
         [Test]
@@ -184,8 +183,8 @@ namespace WhisperAPI.Tests.Unit
                     Content = new StringContent(JsonConvert.SerializeObject(nlpAnalysis))
                 }));
 
-            this._nlpCall.AnalyseSearchQuery(searchQuery);
-            searchQuery.Relevant.Should().BeTrue();
+            this._nlpCall.AnalyzeSearchQuery(searchQuery, out bool relevant);
+            relevant.Should().BeTrue();
         }
 
         private List<string> GetIrrelevantIntents()

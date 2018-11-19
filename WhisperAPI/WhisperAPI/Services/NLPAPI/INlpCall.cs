@@ -5,6 +5,6 @@ namespace WhisperAPI.Services.NLPAPI
 {
     public interface INlpCall
     {
-        NlpAnalysis AnalyseSearchQuery(SearchQuery searchQuery);
+        NlpAnalysis AnalyzeSearchQuery(SearchQuery searchQuery, out bool relevant);
     }
 }

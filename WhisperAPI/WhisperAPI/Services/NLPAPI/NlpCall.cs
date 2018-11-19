@@ -29,7 +29,7 @@ namespace WhisperAPI.Services.NLPAPI
             this.InitHttpClient();
         }
 
-        public NlpAnalysis AnalyseSearchQuery(SearchQuery searchQuery)
+        public NlpAnalysis AnalyzeSearchQuery(SearchQuery searchQuery, out bool relevant)
         {
             var response = this._httpClient.PostAsync("NLP/Analyze", CreateStringContent(searchQuery.Query)).Result;
             response.EnsureSuccessStatusCode();
@@ -37,10 +37,10 @@ namespace WhisperAPI.Services.NLPAPI
 
             if (nlpAnalysis == null)
             {
-                return null;
+                throw new FormatException();
             }
 
-            searchQuery.Relevant = this.IsQueryRelevant(nlpAnalysis);
+            relevant = this.IsQueryRelevant(nlpAnalysis);
             return nlpAnalysis;
         }
 
