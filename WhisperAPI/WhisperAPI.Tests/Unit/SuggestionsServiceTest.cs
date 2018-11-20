@@ -5,7 +5,6 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using WhisperAPI.Models;
-using WhisperAPI.Models.NLPAPI;
 using WhisperAPI.Models.Queries;
 using WhisperAPI.Models.Search;
 using WhisperAPI.Services.MLAPI.Facets;
@@ -119,12 +118,6 @@ namespace WhisperAPI.Tests.Unit
         public void When_receive_more_documents_from_search_than_maximum_documents_return_that_maximum_of_documents(int maxDocuments)
         {
             this._conversationContext.SelectedSuggestedDocuments.Clear();
-
-            var intents = new List<Intent>
-            {
-                IntentBuilder.Build.WithName("Need Help").Instance
-            };
-            var nlpAnalysis = NlpAnalysisBuilder.Build.WithIntents(intents).Instance;
 
             this.SetUpNLPCallMockToReturn(SearchQueryBuilder.Build.Instance, true);
             this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
