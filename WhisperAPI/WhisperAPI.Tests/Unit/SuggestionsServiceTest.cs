@@ -235,7 +235,7 @@ namespace WhisperAPI.Tests.Unit
         [TestCase(5)]
         [TestCase(6)]
         [TestCase(10)]
-        public void When_receive_less_questions_than_maximum_questions_return_that_maximum_of_questions(int maxQuestions)
+        public void When_receive_less_questions_than_maximum_questions_return_all_questions(int maxQuestions)
         {
             this._conversationContext.SelectedSuggestedDocuments.Clear();
 
