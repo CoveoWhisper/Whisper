@@ -103,8 +103,8 @@ namespace WhisperAPI.Services.Suggestions
 
             return documentsFiltered.Select(d => new Recommendation<Document>
             {
-                Value = d,
-                Confidence = 1,
+                Value = d.Item1,
+                Confidence = d.Item2,
                 RecommendedBy = new List<RecommenderType>
                 {
                     RecommenderType.LongQuerySearch
@@ -163,15 +163,15 @@ namespace WhisperAPI.Services.Suggestions
             return allRecommendedQuestions.SelectMany(x => x).OrderByDescending(r => r.Confidence);
         }
 
-        internal IEnumerable<Document> FilterOutChosenSuggestions(
-            IEnumerable<Document> coveoIndexDocuments,
+        internal IEnumerable<Tuple<Document, double>> FilterOutChosenSuggestions(
+            IEnumerable<Tuple<Document, double>> coveoIndexDocuments,
             IEnumerable<ContextItem> queriesList)
         {
             var queries = queriesList
                 .Select(x => x.SearchQuery.Query)
                 .ToList();
 
-            return coveoIndexDocuments.Where(x => !queries.Any(y => y.Contains(x.Uri)));
+            return coveoIndexDocuments.Where(x => !queries.Any(y => y.Contains(x.Item1.Uri)));
         }
 
         private static void AssociateKnownQuestionsWithId(ConversationContext conversationContext, List<Question> questions)
@@ -257,10 +257,10 @@ namespace WhisperAPI.Services.Suggestions
             });
         }
 
-        private IEnumerable<Document> SearchCoveoIndex(string query, List<Document> suggestedDocuments)
+        private IEnumerable<Tuple<Document, double>> SearchCoveoIndex(string query, List<Document> suggestedDocuments)
         {
             ISearchResult searchResult = this._indexSearch.Search(query);
-            var documents = new List<Document>();
+            var documents = new List<Tuple<Document, double>>();
 
             if (searchResult == null)
             {
@@ -279,7 +279,7 @@ namespace WhisperAPI.Services.Suggestions
                 if (this.IsElementValid(result))
                 {
                     var document = suggestedDocuments.Find(x => x.Uri == result.Uri) ?? new Document(result);
-                    documents.Add(document);
+                    documents.Add(new Tuple<Document, double>(document, Math.Round(result.PercentScore / 100, 4)));
                 }
             }
 

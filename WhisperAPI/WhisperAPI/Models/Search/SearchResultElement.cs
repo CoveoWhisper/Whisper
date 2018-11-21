@@ -21,5 +21,8 @@ namespace WhisperAPI.Models.Search
 
         [JsonProperty("excerpt")]
         public string Excerpt { get; set; }
+
+        [JsonProperty("percentScore")]
+        public double PercentScore { get; set; }
     }
 }
