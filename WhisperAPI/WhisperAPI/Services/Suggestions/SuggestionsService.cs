@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using WhisperAPI.Models;
 using WhisperAPI.Models.MLAPI;
+using WhisperAPI.Models.NLPAPI;
 using WhisperAPI.Models.Queries;
 using WhisperAPI.Models.Search;
 using WhisperAPI.Services.MLAPI.Facets;
@@ -90,7 +91,7 @@ namespace WhisperAPI.Services.Suggestions
 
         public IEnumerable<Recommendation<Document>> GetLongQuerySearchRecommendations(ConversationContext conversationContext)
         {
-            var allRelevantQueries = string.Join(" ", conversationContext.SearchQueries.Where(x => x.Relevant).Select(m => m.Query));
+            var allRelevantQueries = string.Join(" ", conversationContext.ContextItems.Where(x => x.Relevant).Select(m => m.SearchQuery.Query));
 
             if (string.IsNullOrEmpty(allRelevantQueries.Trim()))
             {
@@ -98,8 +99,7 @@ namespace WhisperAPI.Services.Suggestions
             }
 
             var coveoIndexDocuments = this.SearchCoveoIndex(allRelevantQueries, conversationContext.SuggestedDocuments.ToList());
-
-            var documentsFiltered = this.FilterOutChosenSuggestions(coveoIndexDocuments, conversationContext.SearchQueries);
+            var documentsFiltered = this.FilterOutChosenSuggestions(coveoIndexDocuments, conversationContext.ContextItems);
 
             return documentsFiltered.Select(d => new Recommendation<Document>
             {
@@ -112,9 +112,14 @@ namespace WhisperAPI.Services.Suggestions
             });
         }
 
-        public void UpdateContextWithNewQuery(ConversationContext context, SearchQuery searchQuery)
+        public void UpdateContextWithNewItem(ConversationContext context, NlpAnalysis nlpAnalysis, SearchQuery searchQuery, bool isRelevant)
         {
-            context.SearchQueries.Add(searchQuery);
+            context.ContextItems.Add(new ContextItem
+            {
+                NlpAnalysis = nlpAnalysis,
+                SearchQuery = searchQuery,
+                Relevant = isRelevant,
+            });
         }
 
         public bool UpdateContextWithSelectedSuggestion(ConversationContext conversationContext, Guid selectQueryId)
@@ -160,10 +165,10 @@ namespace WhisperAPI.Services.Suggestions
 
         internal IEnumerable<Document> FilterOutChosenSuggestions(
             IEnumerable<Document> coveoIndexDocuments,
-            IEnumerable<SearchQuery> queriesList)
+            IEnumerable<ContextItem> queriesList)
         {
             var queries = queriesList
-                .Select(x => x.Query)
+                .Select(x => x.SearchQuery.Query)
                 .ToList();
 
             return coveoIndexDocuments.Where(x => !queries.Any(y => y.Contains(x.Uri)));

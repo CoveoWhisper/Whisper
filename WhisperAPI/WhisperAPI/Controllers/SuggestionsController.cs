@@ -31,15 +31,17 @@ namespace WhisperAPI.Controllers
         [HttpPost]
         public IActionResult GetSuggestions([FromBody] SearchQuery searchQuery)
         {
-            this._nlpService.UpdateAndAnalyseSearchQuery(searchQuery);
-            this._suggestionsService.UpdateContextWithNewQuery(this.ConversationContext, searchQuery);
+            var nlpAnalysis = this._nlpService.AnalyzeSearchQuery(searchQuery, out bool isRelevant);
+
             this._questionsService.DetectAnswer(this.ConversationContext, searchQuery);
             bool questionAskedDetected = this._questionsService.DetectQuestionAsked(this.ConversationContext, searchQuery);
 
             if (questionAskedDetected)
             {
-                searchQuery.Relevant = false;
+                isRelevant = false;
             }
+
+            this._suggestionsService.UpdateContextWithNewItem(this.ConversationContext, nlpAnalysis, searchQuery, isRelevant);
 
             var suggestion = this._suggestionsService.GetNewSuggestion(this.ConversationContext, searchQuery);
 

@@ -18,14 +18,8 @@ namespace WhisperAPI.Models.Queries
         [JsonProperty("query")]
         public string Query { get; set; }
 
-        [JsonProperty("filteredQuery")]
-        public string FilteredQuery { get; set; }
-
         [Required(ErrorMessage = "Type is required")]
         [JsonProperty("type")]
         public MessageType? Type { get; set; }
-
-        [JsonIgnore]
-        public bool Relevant { get; set; }
     }
 }

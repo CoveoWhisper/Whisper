@@ -5,6 +5,7 @@ using NUnit.Framework;
 using WhisperAPI.Models;
 using WhisperAPI.Models.Queries;
 using WhisperAPI.Services.Context;
+using WhisperAPI.Tests.Data.Builders;
 
 namespace WhisperAPI.Tests.Unit
 {
@@ -86,26 +87,27 @@ namespace WhisperAPI.Tests.Unit
         public void When_adding_received_message_to_context_messages_concats_and_persists(string chatKey)
         {
             ConversationContext conversationContext = this._contexts[new Guid(chatKey)];
-            conversationContext.SearchQueries.Add(GetSearchQuery("rest api", chatKey));
+            conversationContext.ContextItems.Add(GetContextItem("rest api", chatKey));
 
             conversationContext = this._contexts[new Guid(chatKey)];
-            conversationContext.SearchQueries[0].Query.Should().Be("rest api");
+            conversationContext.ContextItems[0].SearchQuery.Query.Should().Be("rest api");
 
-            conversationContext.SearchQueries.Add(GetSearchQuery("framework", chatKey));
+            conversationContext.ContextItems.Add(GetContextItem("framework", chatKey));
 
             conversationContext = this._contexts[new Guid(chatKey)];
-            conversationContext.SearchQueries[0].Query.Should().Be("rest api");
-            conversationContext.SearchQueries[1].Query.Should().Be("framework");
+            conversationContext.ContextItems[0].SearchQuery.Query.Should().Be("rest api");
+            conversationContext.ContextItems[1].SearchQuery.Query.Should().Be("framework");
         }
 
-        private static SearchQuery GetSearchQuery(string query, string chatKey)
+        private static ContextItem GetContextItem(string query, string chatKey)
         {
-            return new SearchQuery
-            {
-                ChatKey = new Guid(chatKey),
-                Query = query,
-                Type = SearchQuery.MessageType.Customer
-            };
+            return ContextItemBuilder.Build
+                .WithSearchQuery(SearchQueryBuilder.Build
+                    .WithChatKey(new Guid(chatKey))
+                    .WithQuery(query)
+                    .WithMessageType(SearchQuery.MessageType.Customer)
+                    .Instance)
+                .Instance;
         }
 
         private static Document GetDocument()

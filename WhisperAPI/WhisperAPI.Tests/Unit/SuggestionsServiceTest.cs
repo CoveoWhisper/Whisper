@@ -5,6 +5,7 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using WhisperAPI.Models;
+using WhisperAPI.Models.NLPAPI;
 using WhisperAPI.Models.Queries;
 using WhisperAPI.Models.Search;
 using WhisperAPI.Services.MLAPI.Facets;
@@ -52,15 +53,15 @@ namespace WhisperAPI.Tests.Unit
         public void When_receive_valid_search_result_from_search_then_return_list_of_suggestedDocuments()
         {
             this.SetUpIndexSearchMockToReturn(this.GetSearchResult());
-
+            this.SetUpNLPCallMockToReturn(NlpAnalysisBuilder.Build.Instance, true);
             this._suggestionsService.GetLongQuerySearchRecommendations(this.GetConversationContext()).Should().BeEquivalentTo(this.GetSuggestedDocuments());
         }
 
         [Test]
         [TestCase]
-        public void When_receive_empty_search_result_from_search_then_return_empty_list_of_suggestedDocuments()
+        public void When_receive_irrelevant_intent_then_returns_empty_list_of_suggestedDocuments()
         {
-            this.SetUpIndexSearchMockToReturn(new SearchResult());
+            this.SetUpNLPCallMockToReturn(NlpAnalysisBuilder.Build.Instance, false);
 
             this._suggestionsService.GetLongQuerySearchRecommendations(this.GetConversationContext()).Should().BeEquivalentTo(new List<Recommendation<Document>>());
         }
@@ -70,7 +71,8 @@ namespace WhisperAPI.Tests.Unit
         public void When_query_is_selected_by_agent_suggestion_is_filter_out()
         {
             var suggestion = ((SuggestionsService)this._suggestionsService).FilterOutChosenSuggestions(
-                this.GetSuggestedDocuments().Select(d => d.Value), this.GetQueriesSentByByAgent());
+                this.GetSuggestedDocuments().Select(d => d.Value),
+                this.GetQueriesSentByByAgent().Select(x => ContextItemBuilder.Build.WithSearchQuery(x).Instance));
 
             suggestion.Should().HaveCount(2);
             suggestion.Should().NotContain(this.GetSuggestedDocuments().Select(d => d.Value).ToList().Find(x =>
@@ -118,17 +120,17 @@ namespace WhisperAPI.Tests.Unit
         public void When_receive_more_documents_from_search_than_maximum_documents_return_that_maximum_of_documents(int maxDocuments)
         {
             this._conversationContext.SelectedSuggestedDocuments.Clear();
-
-            this.SetUpNLPCallMockToReturn(SearchQueryBuilder.Build.Instance, true);
             this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
             this.SetUpIndexSearchMockToReturn(this.GetSearchResult());
 
             var suggestionQuery = SearchQueryBuilder.Build
                 .WithMaxDocuments(maxDocuments)
-                .WithRelevant(true)
                 .Instance;
 
-            this._suggestionsService.UpdateContextWithNewQuery(this._conversationContext, suggestionQuery);
+            var contextItem = NlpAnalysisBuilder.Build
+                .Instance;
+
+            this._suggestionsService.UpdateContextWithNewItem(this._conversationContext, contextItem, suggestionQuery, true);
             var suggestion = this._suggestionsService.GetNewSuggestion(this._conversationContext, suggestionQuery);
 
             suggestion.Documents.Should().HaveCount(maxDocuments);
@@ -142,16 +144,17 @@ namespace WhisperAPI.Tests.Unit
         {
             this._conversationContext.SelectedSuggestedDocuments.Clear();
 
-            this.SetUpNLPCallMockToReturn(SearchQueryBuilder.Build.Instance, true);
             this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
             this.SetUpIndexSearchMockToReturn(this.GetSearchResult());
 
             var searchQuery = SearchQueryBuilder.Build
                 .WithMaxDocuments(maxDocuments)
-                .WithRelevant(true)
                 .Instance;
 
-            this._suggestionsService.UpdateContextWithNewQuery(this._conversationContext, searchQuery);
+            var nlpAnalysis = NlpAnalysisBuilder.Build
+                .Instance;
+
+            this._suggestionsService.UpdateContextWithNewItem(this._conversationContext, nlpAnalysis, searchQuery, true);
             var suggestion = this._suggestionsService.GetNewSuggestion(this._conversationContext, searchQuery);
 
             suggestion.Documents.Should().HaveCount(this.GetSuggestedDocuments().Count);
@@ -165,16 +168,17 @@ namespace WhisperAPI.Tests.Unit
         {
             this._conversationContext.SelectedSuggestedDocuments.Clear();
 
-            this.SetUpNLPCallMockToReturn(SearchQueryBuilder.Build.Instance, true);
+            var nlpAnalysis = NlpAnalysisBuilder.Build.Instance;
+
+            this.SetUpNLPCallMockToReturn(nlpAnalysis, true);
             this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
             this.SetUpIndexSearchMockToReturn(this.GetSearchResult());
 
             var searchQuery = SearchQueryBuilder.Build
                 .WithMaxDocuments(maxDocuments)
-                .WithRelevant(true)
                 .Instance;
 
-            this._suggestionsService.UpdateContextWithNewQuery(this._conversationContext, searchQuery);
+            this._suggestionsService.UpdateContextWithNewItem(this._conversationContext, nlpAnalysis, searchQuery, true);
             var suggestion = this._suggestionsService.GetNewSuggestion(this._conversationContext, searchQuery);
 
             suggestion.Documents.Should().HaveCount(maxDocuments);
@@ -186,16 +190,17 @@ namespace WhisperAPI.Tests.Unit
         {
             this._conversationContext.SelectedSuggestedDocuments.Clear();
 
-            this.SetUpNLPCallMockToReturn(SearchQueryBuilder.Build.Instance, true);
+            var nlpAnalysis = NlpAnalysisBuilder.Build.Instance;
+
+            this.SetUpNLPCallMockToReturn(nlpAnalysis, true);
             this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
             this.SetUpIndexSearchMockToReturn(this.GetSearchResult());
 
             var searchQuery = SearchQueryBuilder.Build
                             .WithMaxQuestions(maxQuestions)
-                            .WithRelevant(true)
                             .Instance;
 
-            this._suggestionsService.UpdateContextWithNewQuery(this._conversationContext, searchQuery);
+            this._suggestionsService.UpdateContextWithNewItem(this._conversationContext, nlpAnalysis, searchQuery, true);
             var suggestion = this._suggestionsService.GetNewSuggestion(this._conversationContext, searchQuery);
 
             suggestion.Documents.Should().HaveCount(this.GetSearchResult().NbrElements);
@@ -208,17 +213,17 @@ namespace WhisperAPI.Tests.Unit
         public void When_receive_more_questions_than_maximum_questions_return_that_maximum_of_questions(int maxQuestions)
         {
             this._conversationContext.Questions.Clear();
-
-            this.SetUpNLPCallMockToReturn(SearchQueryBuilder.Build.Instance, true);
             this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
             this.SetUpIndexSearchMockToReturn(this.GetSearchResult());
 
             var suggestionQuery = SearchQueryBuilder.Build
                 .WithMaxQuestions(maxQuestions)
-                .WithRelevant(true)
                 .Instance;
 
-            this._suggestionsService.UpdateContextWithNewQuery(this._conversationContext, suggestionQuery);
+            var contextItem = NlpAnalysisBuilder.Build
+                .Instance;
+
+            this._suggestionsService.UpdateContextWithNewItem(this._conversationContext, contextItem, suggestionQuery, true);
             var suggestion = this._suggestionsService.GetNewSuggestion(this._conversationContext, suggestionQuery);
 
             suggestion.Questions.Should().HaveCount(maxQuestions);
@@ -232,16 +237,65 @@ namespace WhisperAPI.Tests.Unit
         {
             this._conversationContext.SelectedSuggestedDocuments.Clear();
 
-            this.SetUpNLPCallMockToReturn(SearchQueryBuilder.Build.Instance, true);
+            var nlpAnalysis = NlpAnalysisBuilder.Build.Instance;
+
+            this.SetUpNLPCallMockToReturn(nlpAnalysis, true);
+
             this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
             this.SetUpIndexSearchMockToReturn(this.GetSearchResult());
 
             var suggestionQuery = SearchQueryBuilder.Build
                 .WithMaxQuestions(maxQuestions)
-                .WithRelevant(true)
                 .Instance;
 
-            this._suggestionsService.UpdateContextWithNewQuery(this._conversationContext, suggestionQuery);
+            this._suggestionsService.UpdateContextWithNewItem(this._conversationContext, nlpAnalysis, suggestionQuery, true);
+            var suggestion = this._suggestionsService.GetNewSuggestion(this._conversationContext, suggestionQuery);
+
+            suggestion.Questions.Should().HaveCount(this.GetSuggestedQuestions().Count());
+        }
+
+        [Test]
+        [TestCase(1)]
+        [TestCase(2)]
+        [TestCase(3)]
+        public void When_having_more_documents_from_last_search_than_maximum_questions_return_that_maximum_of_documents(int maxQuestions)
+        {
+            this._conversationContext.Questions.Clear();
+
+            var nlpAnalysis = NlpAnalysisBuilder.Build.Instance;
+
+            this.SetUpNLPCallMockToReturn(nlpAnalysis, true);
+            this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
+            this.SetUpIndexSearchMockToReturn(this.GetSearchResult());
+
+            var suggestionQuery = SearchQueryBuilder.Build
+                .WithMaxQuestions(maxQuestions)
+                .Instance;
+
+            this._suggestionsService.UpdateContextWithNewItem(this._conversationContext, nlpAnalysis, suggestionQuery, true);
+            var suggestion = this._suggestionsService.GetNewSuggestion(this._conversationContext, suggestionQuery);
+
+        }
+
+        [Test]
+        [TestCase(5)]
+        [TestCase(6)]
+        [TestCase(10)]
+        public void When_having_less_documents_from_last_search_than_maximum_questions_return_all_documents(int maxQuestions)
+        {
+            this._conversationContext.SelectedSuggestedDocuments.Clear();
+
+            var nlpAnalysis = NlpAnalysisBuilder.Build.Instance;
+
+            this.SetUpNLPCallMockToReturn(nlpAnalysis, true);
+            this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
+            this.SetUpIndexSearchMockToReturn(this.GetSearchResult());
+
+            var suggestionQuery = SearchQueryBuilder.Build
+                .WithMaxQuestions(maxQuestions)
+                .Instance;
+
+            this._suggestionsService.UpdateContextWithNewItem(this._conversationContext, nlpAnalysis, suggestionQuery, true);
             var suggestion = this._suggestionsService.GetNewSuggestion(this._conversationContext, suggestionQuery);
 
             suggestion.Questions.Should().HaveCount(this.GetSuggestedQuestions().Count());
@@ -256,14 +310,12 @@ namespace WhisperAPI.Tests.Unit
                    ChatKey = new Guid("0f8fad5b-d9cb-469f-a165-708677289501"),
                    Query = "https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm",
                    Type = SearchQuery.MessageType.Agent,
-                   Relevant = true
                },
                new SearchQuery
                {
                    ChatKey = new Guid("0f8fad5b-d9cb-469f-a165-708677289501"),
                    Query = "https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm",
                    Type = SearchQuery.MessageType.Agent,
-                   Relevant = true
                }
             };
         }
@@ -357,9 +409,17 @@ namespace WhisperAPI.Tests.Unit
         {
             ConversationContext context = new ConversationContext(new Guid("0f8fad5b-d9cb-469f-a165-708677289501"), DateTime.Now)
             {
-                SearchQueries = new List<SearchQuery>
+                ContextItems = new List<ContextItem>
                 {
-                    new SearchQuery { ChatKey = new Guid("0f8fad5b-d9cb-469f-a165-708677289501"), Query = "rest api", Type = SearchQuery.MessageType.Customer, FilteredQuery = "rest api", Relevant = true }
+                    ContextItemBuilder.Build
+                    .WithSearchQuery(
+                        SearchQueryBuilder.Build
+                        .WithChatKey(new Guid("0f8fad5b-d9cb-469f-a165-708677289501"))
+                        .WithQuery("rest api")
+                        .WithMessageType(SearchQuery.MessageType.Customer)
+                        .Instance)
+                    .WithRelevant(true)
+                    .Instance
                 }
             };
             return context;
@@ -372,15 +432,11 @@ namespace WhisperAPI.Tests.Unit
                 .Returns(facetQuestions);
         }
 
-        private void SetUpNLPCallMockToReturn(SearchQuery searchQuery, bool relevant)
+        private void SetUpNLPCallMockToReturn(NlpAnalysis nlpAnalysis, bool isRelevant)
         {
             this._nlpCallMock
-                .Setup(x => x.UpdateAndAnalyseSearchQuery(searchQuery))
-                .Callback(() =>
-                {
-                    searchQuery.FilteredQuery = searchQuery.Query;
-                    searchQuery.Relevant = relevant;
-                });
+                .Setup(x => x.AnalyzeSearchQuery(It.IsAny<SearchQuery>(), out isRelevant))
+                .Returns(nlpAnalysis);
         }
 
         private void SetUpIndexSearchMockToReturn(ISearchResult searchResult)

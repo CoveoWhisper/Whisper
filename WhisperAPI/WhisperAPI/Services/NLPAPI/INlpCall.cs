@@ -1,9 +1,10 @@
-﻿using WhisperAPI.Models.Queries;
+﻿using WhisperAPI.Models.NLPAPI;
+using WhisperAPI.Models.Queries;
 
 namespace WhisperAPI.Services.NLPAPI
 {
     public interface INlpCall
     {
-        void UpdateAndAnalyseSearchQuery(SearchQuery searchQuery);
+        NlpAnalysis AnalyzeSearchQuery(SearchQuery searchQuery, out bool relevant);
     }
 }
