@@ -49,16 +49,13 @@ namespace WhisperAPI.Tests.Unit
         }
 
         [Test]
-        [TestCase]
         public void When_receive_valid_search_result_from_search_then_return_list_of_suggestedDocuments()
         {
             this.SetUpIndexSearchMockToReturn(this.GetSearchResult());
-            this.SetUpNLPCallMockToReturn(NlpAnalysisBuilder.Build.Instance, true);
             this._suggestionsService.GetLongQuerySearchRecommendations(this.GetConversationContext()).Should().BeEquivalentTo(this.GetSuggestedDocuments());
         }
 
         [Test]
-        [TestCase]
         public void When_receive_irrelevant_intent_then_returns_empty_list_of_suggestedDocuments()
         {
             this.SetUpNLPCallMockToReturn(NlpAnalysisBuilder.Build.Instance, false);
@@ -67,18 +64,17 @@ namespace WhisperAPI.Tests.Unit
         }
 
         [Test]
-        [TestCase]
         public void When_query_is_selected_by_agent_suggestion_is_filter_out()
         {
             var suggestion = ((SuggestionsService)this._suggestionsService).FilterOutChosenSuggestions(
-                this.GetSuggestedDocuments().Select(d => d.Value),
+                this.GetDocumentsWithScore(),
                 this.GetQueriesSentByByAgent().Select(x => ContextItemBuilder.Build.WithSearchQuery(x).Instance));
 
             suggestion.Should().HaveCount(2);
-            suggestion.Should().NotContain(this.GetSuggestedDocuments().Select(d => d.Value).ToList().Find(x =>
-                x.Uri == "https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm"));
-            suggestion.Should().NotContain(this.GetSuggestedDocuments().Select(d => d.Value).ToList().Find(x =>
-                x.Uri == "https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm"));
+            suggestion.Should().NotContain(this.GetDocumentsWithScore().ToList().Find(x =>
+                x.Item1.Uri == "https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm"));
+            suggestion.Should().NotContain(this.GetDocumentsWithScore().ToList().Find(x =>
+                x.Item1.Uri == "https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm"));
         }
 
         [Test]
@@ -333,7 +329,8 @@ namespace WhisperAPI.Tests.Unit
                         Uri = "https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm",
                         PrintableUri = "https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm",
                         Summary = null,
-                        Score = 4280
+                        Score = 4280,
+                        PercentScore = 98
                     },
                     new SearchResultElement
                     {
@@ -341,7 +338,8 @@ namespace WhisperAPI.Tests.Unit
                         Uri = "https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm",
                         PrintableUri = "https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm",
                         Summary = null,
-                        Score = 3900
+                        Score = 3900,
+                        PercentScore = 96
                     },
                     new SearchResultElement
                     {
@@ -349,7 +347,8 @@ namespace WhisperAPI.Tests.Unit
                         Uri = "https://developers.coveo.com/display/JsSearchV1/Page/27230520/27230472/27230573",
                         PrintableUri = "https://developers.coveo.com/display/JsSearchV1/Page/27230520/27230472/27230573",
                         Summary = null,
-                        Score = 2947
+                        Score = 2947,
+                        PercentScore = 80
                     },
                     new SearchResultElement
                     {
@@ -357,7 +356,8 @@ namespace WhisperAPI.Tests.Unit
                         Uri = "https://coveo.github.io/search-ui/components/facet.html",
                         PrintableUri = "https://coveo.github.io/search-ui/components/facet.html",
                         Summary = null,
-                        Score = 2932
+                        Score = 2932,
+                        PercentScore = 51
                     }
                 }
             };
@@ -372,26 +372,35 @@ namespace WhisperAPI.Tests.Unit
                         .WithTitle("Available Coveo Cloud V2 Source Types")
                         .WithUri("https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm")
                         .WithPrintableUri("https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm")
-                        .Instance).Instance,
+                        .Instance)
+                    .WithConfidence(0.98).Instance,
                 RecommendationBuilder<Document>.Build.WithValue(
                     DocumentBuilder.Build
                         .WithTitle("Coveo Cloud Query Syntax Reference")
                         .WithUri("https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm")
                         .WithPrintableUri("https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm")
-                        .Instance).Instance,
+                        .Instance)
+                    .WithConfidence(0.96).Instance,
                 RecommendationBuilder<Document>.Build.WithValue(
                     DocumentBuilder.Build
                         .WithTitle("Events")
                         .WithUri("https://developers.coveo.com/display/JsSearchV1/Page/27230520/27230472/27230573")
                         .WithPrintableUri("https://developers.coveo.com/display/JsSearchV1/Page/27230520/27230472/27230573")
-                        .Instance).Instance,
+                        .Instance)
+                    .WithConfidence(0.80).Instance,
                 RecommendationBuilder<Document>.Build.WithValue(
                     DocumentBuilder.Build
                         .WithTitle("Coveo Facet Component (CoveoFacet)")
                         .WithUri("https://coveo.github.io/search-ui/components/facet.html")
                         .WithPrintableUri("https://coveo.github.io/search-ui/components/facet.html")
-                        .Instance).Instance
+                        .Instance)
+                    .WithConfidence(0.51).Instance
             };
+        }
+
+        public IEnumerable<Tuple<Document, double>> GetDocumentsWithScore()
+        {
+            return this.GetSuggestedDocuments().Select(d => new Tuple<Document, double>(d.Value, d.Confidence));
         }
 
         public List<FacetQuestion> GetSuggestedQuestions()

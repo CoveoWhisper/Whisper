@@ -13,5 +13,7 @@
         int Score { get; set; }
 
         string Excerpt { get; set; }
+
+        double PercentScore { get; set; }
     }
 }
