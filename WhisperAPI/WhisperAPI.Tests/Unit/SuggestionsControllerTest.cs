@@ -76,7 +76,7 @@ namespace WhisperAPI.Tests.Unit
         {
             this._suggestionServiceMock = new Mock<ISuggestionsService>();
             this._suggestionServiceMock
-                .Setup(x => x.GetDocuments(It.IsAny<ConversationContext>()))
+                .Setup(x => x.GetLongQuerySearchRecommendations(It.IsAny<ConversationContext>()))
                 .Returns(GetListOfDocuments());
 
             this._questionsServiceMock = new Mock<IQuestionsService>();
@@ -99,7 +99,7 @@ namespace WhisperAPI.Tests.Unit
         {
             var suggestionFromService = new Suggestion
             {
-                Questions = GetListOfQuestions().Select(QuestionToClient.FromQuestion).ToList(),
+                Questions = GetListOfQuestions().Select(r => r.ConvertValue(QuestionToClient.FromQuestion)).ToList(),
                 Documents = GetListOfDocuments()
             };
 
@@ -266,39 +266,51 @@ namespace WhisperAPI.Tests.Unit
             return actionExecutingContext;
         }
 
-        private static List<Document> GetListOfDocuments()
+        private static List<Recommendation<Document>> GetListOfDocuments()
         {
-            return new List<Document>
+            return new List<Recommendation<Document>>
             {
-                DocumentBuilder.Build
-                    .WithTitle("Available Coveo Cloud V2 Source Types")
-                    .WithUri("https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm")
-                    .WithPrintableUri("https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm")
-                    .Instance,
-                DocumentBuilder.Build
-                    .WithTitle("Coveo Cloud Query Syntax Reference")
-                    .WithUri("https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm")
-                    .WithPrintableUri("https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm")
-                    .Instance,
-                DocumentBuilder.Build
-                    .WithTitle("Events")
-                    .WithUri("https://developers.coveo.com/display/JsSearchV1/Page/27230520/27230472/27230573")
-                    .WithPrintableUri("https://developers.coveo.com/display/JsSearchV1/Page/27230520/27230472/27230573")
-                    .Instance,
-                DocumentBuilder.Build
-                    .WithTitle("Coveo Facet Component (CoveoFacet)")
-                    .WithUri("https://coveo.github.io/search-ui/components/facet.html")
-                    .WithPrintableUri("https://coveo.github.io/search-ui/components/facet.html")
-                    .Instance
+                RecommendationBuilder<Document>.Build.WithValue(
+                    DocumentBuilder.Build
+                        .WithTitle("Available Coveo Cloud V2 Source Types")
+                        .WithUri("https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm")
+                        .WithPrintableUri("https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm")
+                        .Instance).Instance,
+                RecommendationBuilder<Document>.Build.WithValue(
+                    DocumentBuilder.Build
+                        .WithTitle("Coveo Cloud Query Syntax Reference")
+                        .WithUri("https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm")
+                        .WithPrintableUri("https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm")
+                        .Instance).Instance,
+                RecommendationBuilder<Document>.Build.WithValue(
+                    DocumentBuilder.Build
+                        .WithTitle("Events")
+                        .WithUri("https://developers.coveo.com/display/JsSearchV1/Page/27230520/27230472/27230573")
+                        .WithPrintableUri("https://developers.coveo.com/display/JsSearchV1/Page/27230520/27230472/27230573")
+                        .Instance).Instance,
+                RecommendationBuilder<Document>.Build.WithValue(
+                    DocumentBuilder.Build
+                        .WithTitle("Coveo Facet Component (CoveoFacet)")
+                        .WithUri("https://coveo.github.io/search-ui/components/facet.html")
+                        .WithPrintableUri("https://coveo.github.io/search-ui/components/facet.html")
+                        .Instance).Instance
             };
         }
 
-        private static List<Question> GetListOfQuestions()
+        private static List<Recommendation<Question>> GetListOfQuestions()
         {
-            return new List<Question>
+            return new List<Recommendation<Question>>
             {
-                FacetQuestionBuilder.Build.WithFacetName("Dummy").WithFacetValues("A", "B", "C").Instance,
-                FacetQuestionBuilder.Build.WithFacetName("Dummy").WithFacetValues("C", "D", "E").Instance,
+                RecommendationBuilder<Question>.Build.WithValue(
+                    FacetQuestionBuilder.Build
+                        .WithFacetName("Dummy")
+                        .WithFacetValues("A", "B", "C")
+                        .Instance).Instance,
+                RecommendationBuilder<Question>.Build.WithValue(
+                    FacetQuestionBuilder.Build
+                        .WithFacetName("Dummy")
+                        .WithFacetValues("C", "D", "E")
+                        .Instance).Instance
             };
         }
     }
