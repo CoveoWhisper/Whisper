@@ -316,7 +316,6 @@ namespace WhisperAPI.Tests.Integration
             this.NlpCallHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(this.GetRelevantNlpAnalysis())));
             this.IndexSearchHttpMessageHandleMock(HttpStatusCode.OK, this.GetSearchResultStringContent());
             this.DocumentFacetsHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(questions)));
-            this.FilterDocumentHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(GetSuggestedDocuments().Select(x => x.Id))));
 
             this._suggestionController.OnActionExecuting(this.GetActionExecutingContext(searchQuery));
             var result = this._suggestionController.GetSuggestions(searchQuery);
@@ -353,8 +352,6 @@ namespace WhisperAPI.Tests.Integration
             result = this._suggestionController.GetSuggestions(searchQuery);
             suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
-            // The return list from facet is the same list than the complete list so it should filtered everything
-            suggestion.Documents.Select(d => d.Value).Should().BeEmpty();
             suggestion.ActiveFacets.Should().HaveCount(1);
             suggestion.ActiveFacets[0].Value = answerFromClient;
 
