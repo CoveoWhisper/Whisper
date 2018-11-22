@@ -1,8 +1,13 @@
-﻿using System.Net.Http;
+﻿using System.Collections.Generic;
+using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Newtonsoft.Json;
+using WhisperAPI.Models.MLAPI;
 using WhisperAPI.Models.Search;
+
+[assembly: InternalsVisibleTo("WhisperAPI.Tests")]
 
 namespace WhisperAPI.Services.Search
 {
@@ -23,9 +28,20 @@ namespace WhisperAPI.Services.Search
             this.InitHttpClient(searchBaseAddress);
         }
 
-        public ISearchResult Search(string query)
+        public ISearchResult Search(string query, List<Facet> mustHaveFacets)
         {
-            return JsonConvert.DeserializeObject<SearchResult>(this.GetStringFromPost(this._searchEndPoint, this.CreateStringContent(query)));
+            return JsonConvert.DeserializeObject<SearchResult>(this.GetStringFromPost(this._searchEndPoint, this.CreateStringContent(query, mustHaveFacets)));
+        }
+
+        internal string GenerateAdvancedQuery(List<Facet> facets)
+        {
+            var advancedQuery = string.Empty;
+            foreach (Facet facet in facets)
+            {
+                advancedQuery += " (@" + facet.Name + "==" + facet.Value + ")";
+            }
+
+            return advancedQuery;
         }
 
         private string GetStringFromPost(string url, StringContent content)
@@ -36,12 +52,13 @@ namespace WhisperAPI.Services.Search
             return response.Content.ReadAsStringAsync().Result;
         }
 
-        private StringContent CreateStringContent(string query)
+        private StringContent CreateStringContent(string query, List<Facet> mustHaveFacets)
         {
             var searchParameters = new SearchParameters
             {
                 Lq = query,
-                NumberOfResults = this._numberOfResults
+                NumberOfResults = this._numberOfResults,
+                AdvancedQuery = this.GenerateAdvancedQuery(mustHaveFacets)
             };
 
             var json = JsonConvert.SerializeObject(searchParameters);

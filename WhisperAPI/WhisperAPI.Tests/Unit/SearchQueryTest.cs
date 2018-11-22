@@ -46,7 +46,7 @@ namespace WhisperAPI.Tests.Unit
         [Test]
         public void When_sending_good_model_then_modelstate_is_valid()
         {
-            var jsonSearchQuery = "{\"chatkey\": \"aecaa8db-abc8-4ac9-aa8d-87987da2dbb0\",\"Type\": 1,\"Query\": \"Need help with CoveoSearch API\"}";
+            var jsonSearchQuery = "{\"chatkey\": \"aecaa8db-abc8-4ac9-aa8d-87987da2dbb0\",\"Type\": 1,\"Query\": \"Need help with CoveoSearch API\", \"aq\": \"(@test==salut) \"}";
 
             var searchQuery = JsonConvert.DeserializeObject<SearchQuery>(jsonSearchQuery);
             var context = new ValidationContext(searchQuery, null, null);

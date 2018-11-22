@@ -70,13 +70,6 @@ namespace WhisperAPI.Services.Suggestions
             var mergedQuestions = this.MergeRecommendedQuestions(allRecommendedQuestions).Take(query.MaxQuestions);
 
             var activeFacets = GetActiveFacets(conversationContext).ToList();
-            if (activeFacets.Any())
-            {
-                var documentUris = this.FilterDocumentsByFacet(mergedDocuments.Select(r => r.Value), conversationContext.FilterDocumentsParameters.MustHaveFacets);
-                var keptDocumentsUris = new HashSet<string>(documentUris);
-                mergedDocuments = mergedDocuments.Where(r => keptDocumentsUris.Contains(r.Value.Uri));
-            }
-
             var suggestion = new Suggestion
             {
                 ActiveFacets = activeFacets,
@@ -98,7 +91,7 @@ namespace WhisperAPI.Services.Suggestions
                 return new List<Recommendation<Document>>();
             }
 
-            var coveoIndexDocuments = this.SearchCoveoIndex(allRelevantQueries, conversationContext.SuggestedDocuments.ToList());
+            var coveoIndexDocuments = this.SearchCoveoIndex(allRelevantQueries, conversationContext);
             var documentsFiltered = this.FilterOutChosenSuggestions(coveoIndexDocuments, conversationContext.ContextItems);
 
             return documentsFiltered.Select(d => new Recommendation<Document>
@@ -257,9 +250,9 @@ namespace WhisperAPI.Services.Suggestions
             });
         }
 
-        private IEnumerable<Tuple<Document, double>> SearchCoveoIndex(string query, List<Document> suggestedDocuments)
+        private IEnumerable<Tuple<Document, double>> SearchCoveoIndex(string query, ConversationContext conversationContext)
         {
-            ISearchResult searchResult = this._indexSearch.Search(query);
+            ISearchResult searchResult = this._indexSearch.Search(query, conversationContext.FilterDocumentsParameters.MustHaveFacets);
             var documents = new List<Tuple<Document, double>>();
 
             if (searchResult == null)
@@ -278,6 +271,7 @@ namespace WhisperAPI.Services.Suggestions
             {
                 if (this.IsElementValid(result))
                 {
+                    var suggestedDocuments = conversationContext.SuggestedDocuments.ToList();
                     var document = suggestedDocuments.Find(x => x.Uri == result.Uri) ?? new Document(result);
                     documents.Add(new Tuple<Document, double>(document, Math.Round(result.PercentScore / 100, 4)));
                 }

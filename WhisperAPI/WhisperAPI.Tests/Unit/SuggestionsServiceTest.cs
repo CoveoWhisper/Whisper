@@ -5,6 +5,7 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using WhisperAPI.Models;
+using WhisperAPI.Models.MLAPI;
 using WhisperAPI.Models.NLPAPI;
 using WhisperAPI.Models.Queries;
 using WhisperAPI.Models.Search;
@@ -270,7 +271,6 @@ namespace WhisperAPI.Tests.Unit
 
             this._suggestionsService.UpdateContextWithNewItem(this._conversationContext, nlpAnalysis, suggestionQuery, true);
             var suggestion = this._suggestionsService.GetNewSuggestion(this._conversationContext, suggestionQuery);
-
         }
 
         [Test]
@@ -451,7 +451,7 @@ namespace WhisperAPI.Tests.Unit
         private void SetUpIndexSearchMockToReturn(ISearchResult searchResult)
         {
             this._indexSearchMock
-                .Setup(x => x.Search(It.IsAny<string>()))
+                .Setup(x => x.Search(It.IsAny<string>(), It.IsAny<List<Facet>>()))
                 .Returns(searchResult);
         }
     }

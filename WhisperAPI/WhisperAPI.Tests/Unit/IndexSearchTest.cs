@@ -6,22 +6,28 @@ using FluentAssertions;
 using Moq;
 using Moq.Protected;
 using NUnit.Framework;
+using WhisperAPI.Models.MLAPI;
 using WhisperAPI.Models.Search;
 using WhisperAPI.Services.Search;
+using WhisperAPI.Tests.Data.Builders;
 
 namespace WhisperAPI.Tests.Unit
 {
     [TestFixture]
     public class IndexSearchTest
     {
+        private readonly int _numberOfResults = 1000;
         private Mock<HttpMessageHandler> _httpMessageHandler;
-        private int _numberOfResults = 1000;
         private HttpClient _httpClient;
+        private IIndexSearch _indexSearch;
 
         [SetUp]
         public void SetUp()
         {
-           this._httpMessageHandler = new Mock<HttpMessageHandler>();
+            this._httpMessageHandler = new Mock<HttpMessageHandler>();
+
+            this._httpClient = new HttpClient(this._httpMessageHandler.Object);
+            this._indexSearch = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000");
         }
 
         [Test]
@@ -39,7 +45,7 @@ namespace WhisperAPI.Tests.Unit
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
             IIndexSearch indexSearchOK = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000");
 
-            indexSearchOK.Search(query).Should().BeEquivalentTo(this.GetSearchResult());
+            indexSearchOK.Search(query, new List<Facet>()).Should().BeEquivalentTo(this.GetSearchResult());
         }
 
         [Test]
@@ -57,7 +63,7 @@ namespace WhisperAPI.Tests.Unit
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
             IIndexSearch indexSearchNotFound = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000");
 
-            Assert.Throws<HttpRequestException>(() => indexSearchNotFound.Search(query));
+            Assert.Throws<HttpRequestException>(() => indexSearchNotFound.Search(query, new List<Facet>()));
         }
 
         [Test]
@@ -75,7 +81,26 @@ namespace WhisperAPI.Tests.Unit
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
             IIndexSearch indexSearchOKNoContent = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000");
 
-            indexSearchOKNoContent.Search(query).Should().BeEquivalentTo((SearchResult)null);
+            indexSearchOKNoContent.Search(query, new List<Facet>()).Should().BeEquivalentTo((SearchResult)null);
+        }
+
+        [Test]
+        public void When_active_facets_then_aq_is_parsed_in_correctly()
+        {
+            var facet = FacetBuilder.Build
+                .WithName("Bob").WithValue("Ross")
+                .Instance;
+            var facet2 = FacetBuilder.Build
+                .WithName("John").WithValue("Doe")
+                .Instance;
+            var parameters = FilterDocumentsParametersBuilder.Build
+                .AddMustHaveFacet(facet)
+                .AddMustHaveFacet(facet2)
+                .Instance;
+
+            var result = ((IndexSearch)this._indexSearch).GenerateAdvancedQuery(parameters.MustHaveFacets);
+
+            result.Should().BeEquivalentTo(" (@Bob==Ross) (@John==Doe)");
         }
 
         public SearchResult GetSearchResult()
