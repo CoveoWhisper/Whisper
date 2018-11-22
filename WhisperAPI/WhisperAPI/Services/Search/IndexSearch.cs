@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
@@ -28,20 +29,14 @@ namespace WhisperAPI.Services.Search
             this.InitHttpClient(searchBaseAddress);
         }
 
-        public ISearchResult Search(string query, List<Facet> mustHaveFacets)
+        public ISearchResult Search(string query, IEnumerable<Facet> mustHaveFacets)
         {
             return JsonConvert.DeserializeObject<SearchResult>(this.GetStringFromPost(this._searchEndPoint, this.CreateStringContent(query, mustHaveFacets)));
         }
 
-        internal string GenerateAdvancedQuery(List<Facet> facets)
+        internal string GenerateAdvancedQuery(IEnumerable<Facet> facets)
         {
-            var advancedQuery = string.Empty;
-            foreach (Facet facet in facets)
-            {
-                advancedQuery += " (@" + facet.Name + "==" + facet.Value + ")";
-            }
-
-            return advancedQuery;
+            return facets.Aggregate(string.Empty, (current, facet) => current + (" (@" + facet.Name + "==" + facet.Value + ")"));
         }
 
         private string GetStringFromPost(string url, StringContent content)
@@ -52,7 +47,7 @@ namespace WhisperAPI.Services.Search
             return response.Content.ReadAsStringAsync().Result;
         }
 
-        private StringContent CreateStringContent(string query, List<Facet> mustHaveFacets)
+        private StringContent CreateStringContent(string query, IEnumerable<Facet> mustHaveFacets)
         {
             var searchParameters = new SearchParameters
             {

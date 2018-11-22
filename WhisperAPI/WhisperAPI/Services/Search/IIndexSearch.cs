@@ -6,6 +6,6 @@ namespace WhisperAPI.Services.Search
 {
     public interface IIndexSearch
     {
-        ISearchResult Search(string query, List<Facet> mustHaveFacets);
+        ISearchResult Search(string query, IEnumerable<Facet> mustHaveFacets);
     }
 }
