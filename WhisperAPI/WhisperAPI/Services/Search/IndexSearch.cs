@@ -1,6 +1,7 @@
 ﻿using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using WhisperAPI.Models.Search;
 
@@ -23,14 +24,15 @@ namespace WhisperAPI.Services.Search
             this.InitHttpClient(searchBaseAddress);
         }
 
-        public ISearchResult Search(string query)
+        public async Task<ISearchResult> Search(string query)
         {
-            return JsonConvert.DeserializeObject<SearchResult>(this.GetStringFromPost(this._searchEndPoint, this.CreateStringContent(query)));
+            var stringResult = await this.GetStringFromPost(this._searchEndPoint, this.CreateStringContent(query));
+            return JsonConvert.DeserializeObject<SearchResult>(stringResult);
         }
 
-        private string GetStringFromPost(string url, StringContent content)
+        private async Task<string> GetStringFromPost(string url, StringContent content)
         {
-            HttpResponseMessage response = this._httpClient.PostAsync(url, content).Result;
+            HttpResponseMessage response = await this._httpClient.PostAsync(url, content);
             response.EnsureSuccessStatusCode();
 
             return response.Content.ReadAsStringAsync().Result;
