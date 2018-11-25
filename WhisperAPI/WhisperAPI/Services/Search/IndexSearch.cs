@@ -1,6 +1,7 @@
 ﻿using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using WhisperAPI.Models.Search;
 
@@ -23,18 +24,7 @@ namespace WhisperAPI.Services.Search
             this.InitHttpClient(searchBaseAddress);
         }
 
-        public ISearchResult LqSearch(string query)
-        {
-            var searchParameters = new LqSearchParameters
-            {
-                Lq = query,
-                NumberOfResults = this._numberOfResults
-            };
-
-            return JsonConvert.DeserializeObject<SearchResult>(this.GetStringFromPost(this._searchEndPoint, this.CreateStringContent(searchParameters)));
-        }
-
-        public ISearchResult QSearch(string query)
+        public async Task<ISearchResult> QSearch(string query)
         {
             var searchParameters = new QSearchParameters
             {
@@ -42,15 +32,28 @@ namespace WhisperAPI.Services.Search
                 NumberOfResults = this._numberOfResults
             };
 
-            return JsonConvert.DeserializeObject<SearchResult>(this.GetStringFromPost(this._searchEndPoint, this.CreateStringContent(searchParameters)));
+            var stringResult = await this.GetStringFromPost(this._searchEndPoint, this.CreateStringContent(searchParameters));
+            return JsonConvert.DeserializeObject<SearchResult>(stringResult);
         }
 
-        private string GetStringFromPost(string url, StringContent content)
+        public async Task<ISearchResult> LqSearch(string query)
         {
-            HttpResponseMessage response = this._httpClient.PostAsync(url, content).Result;
+            var searchParameters = new LqSearchParameters
+            {
+                Lq = query,
+                NumberOfResults = this._numberOfResults
+            };
+
+            var stringResult = await this.GetStringFromPost(this._searchEndPoint, this.CreateStringContent(searchParameters));
+            return JsonConvert.DeserializeObject<SearchResult>(stringResult);
+        }
+
+        private async Task<string> GetStringFromPost(string url, StringContent content)
+        {
+            HttpResponseMessage response = await this._httpClient.PostAsync(url, content);
             response.EnsureSuccessStatusCode();
 
-            return response.Content.ReadAsStringAsync().Result;
+            return await response.Content.ReadAsStringAsync();
         }
 
         private StringContent CreateStringContent(SearchParameters parameters)

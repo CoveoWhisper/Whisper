@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using WhisperAPI.Models;
 using WhisperAPI.Models.NLPAPI;
 using WhisperAPI.Models.Queries;
@@ -10,7 +11,7 @@ namespace WhisperAPI.Services.Suggestions
     {
         Suggestion GetNewSuggestion(ConversationContext conversationContext, SuggestionQuery query);
 
-        IEnumerable<Recommendation<Document>> GetLongQuerySearchRecommendations(ConversationContext conversationContext);
+        Task<IEnumerable<Recommendation<Document>>> GetLongQuerySearchRecommendations(ConversationContext conversationContext);
 
         void UpdateContextWithNewItem(ConversationContext context, NlpAnalysis nlpAnalysis, SearchQuery searchQuery, bool isRelevant);
 

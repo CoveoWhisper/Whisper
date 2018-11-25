@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,8 +39,7 @@ namespace WhisperAPI.Tests.Unit
 
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
             IIndexSearch indexSearchOK = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000");
-
-            indexSearchOK.LqSearch(query).Should().BeEquivalentTo(this.GetSearchResult());
+            indexSearchOK.LqSearch(query).Result.Should().BeEquivalentTo(this.GetSearchResult());
         }
 
         [Test]
@@ -56,8 +56,7 @@ namespace WhisperAPI.Tests.Unit
 
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
             IIndexSearch indexSearchOK = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000");
-
-            indexSearchOK.QSearch(query).Should().BeEquivalentTo(this.GetSearchResult());
+            indexSearchOK.QSearch(query).Result.Should().BeEquivalentTo(this.GetSearchResult());
         }
 
         [Test]
@@ -74,8 +73,7 @@ namespace WhisperAPI.Tests.Unit
 
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
             IIndexSearch indexSearchNotFound = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000");
-
-            Assert.Throws<HttpRequestException>(() => indexSearchNotFound.LqSearch(query));
+            Assert.Throws<AggregateException>(() => indexSearchNotFound.LqSearch(query).Wait());
         }
 
         [Test]
@@ -92,8 +90,7 @@ namespace WhisperAPI.Tests.Unit
 
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
             IIndexSearch indexSearchOKNoContent = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000");
-
-            indexSearchOKNoContent.LqSearch(query).Should().BeEquivalentTo((SearchResult)null);
+            indexSearchOKNoContent.LqSearch(query).Result.Should().BeEquivalentTo((SearchResult)null);
         }
 
         public SearchResult GetSearchResult()

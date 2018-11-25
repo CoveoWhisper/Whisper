@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using WhisperAPI.Models;
 using WhisperAPI.Models.MLAPI;
 using WhisperAPI.Models.NLPAPI;
@@ -41,23 +42,25 @@ namespace WhisperAPI.Services.Suggestions
 
         public Suggestion GetNewSuggestion(ConversationContext conversationContext, SuggestionQuery query)
         {
-            var allRecommendedDocuments = new List<IEnumerable<Recommendation<Document>>>();
             var allRecommendedQuestions = new List<IEnumerable<Recommendation<Question>>>();
 
+            var tasks = new List<Task<IEnumerable<Recommendation<Document>>>>();
             if (this._recommenderSettings.UseLongQuerySearchRecommender)
             {
-                allRecommendedDocuments.Add(this.GetLongQuerySearchRecommendations(conversationContext).ToList());
+                tasks.Add(this.GetLongQuerySearchRecommendations(conversationContext));
             }
 
-            if (this._recommenderSettings.UsePreprocessedQuerySearchReccomender)
+            if (this._recommenderSettings.UsePreprocessedQuerySearchRecommender)
             {
-                allRecommendedDocuments.Add(this.GetQuerySearchRecommendations(conversationContext).ToList());
+                tasks.Add(this.GetQuerySearchRecommendations(conversationContext));
             }
 
-            if (this._recommenderSettings.UseAnalyticsSearchReccomender)
+            if (this._recommenderSettings.UseAnalyticsSearchRecommender)
             {
                 // TODO
             }
+
+            var allRecommendedDocuments = Task.WhenAll(tasks).Result.ToList();
 
             // TODO ensure documents are filtered, here, in the calls or afterwards
             var mergedDocuments = this.MergeRecommendedDocuments(allRecommendedDocuments);
@@ -89,7 +92,7 @@ namespace WhisperAPI.Services.Suggestions
             return suggestion;
         }
 
-        public IEnumerable<Recommendation<Document>> GetLongQuerySearchRecommendations(ConversationContext conversationContext)
+        public async Task<IEnumerable<Recommendation<Document>>> GetLongQuerySearchRecommendations(ConversationContext conversationContext)
         {
             var allRelevantQueries = string.Join(" ", conversationContext.ContextItems.Where(x => x.Relevant).Select(m => m.SearchQuery.Query));
 
@@ -98,7 +101,7 @@ namespace WhisperAPI.Services.Suggestions
                 return new List<Recommendation<Document>>();
             }
 
-            var searchResult = this._indexSearch.LqSearch(allRelevantQueries);
+            var searchResult = await this._indexSearch.LqSearch(allRelevantQueries);
             var coveoIndexDocuments = this.CreateDocumentsFromCoveoSearch(searchResult, conversationContext.SuggestedDocuments.ToList());
             var documentsFiltered = this.FilterOutChosenSuggestions(coveoIndexDocuments, conversationContext.ContextItems);
 
@@ -142,7 +145,7 @@ namespace WhisperAPI.Services.Suggestions
             return false;
         }
 
-        internal IEnumerable<Recommendation<Document>> GetQuerySearchRecommendations(ConversationContext conversationContext)
+        internal async Task<IEnumerable<Recommendation<Document>>> GetQuerySearchRecommendations(ConversationContext conversationContext)
         {
             var allParsedRelevantQueries = conversationContext.ContextItems
                 .Where(c => c.SearchQuery.Type == SearchQuery.MessageType.Customer)
@@ -156,7 +159,7 @@ namespace WhisperAPI.Services.Suggestions
                 return new List<Recommendation<Document>>();
             }
 
-            var searchResult = this._indexSearch.QSearch(query);
+            var searchResult = await this._indexSearch.QSearch(query);
             var coveoIndexDocuments = this.CreateDocumentsFromCoveoSearch(searchResult, conversationContext.SuggestedDocuments.ToList());
             var documentsFiltered = this.FilterOutChosenSuggestions(coveoIndexDocuments, conversationContext.ContextItems);
 

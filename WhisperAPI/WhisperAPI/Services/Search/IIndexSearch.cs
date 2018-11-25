@@ -1,11 +1,12 @@
-﻿using WhisperAPI.Models.Search;
+﻿using System.Threading.Tasks;
+using WhisperAPI.Models.Search;
 
 namespace WhisperAPI.Services.Search
 {
     public interface IIndexSearch
     {
-        ISearchResult LqSearch(string query);
+        Task<ISearchResult> LqSearch(string query);
 
-        ISearchResult QSearch(string query);
+        Task<ISearchResult> QSearch(string query);
     }
 }
