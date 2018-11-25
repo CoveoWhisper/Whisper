@@ -23,9 +23,26 @@ namespace WhisperAPI.Services.Search
             this.InitHttpClient(searchBaseAddress);
         }
 
-        public ISearchResult Search(string query)
+        public ISearchResult LqSearch(string query)
         {
-            return JsonConvert.DeserializeObject<SearchResult>(this.GetStringFromPost(this._searchEndPoint, this.CreateStringContent(query)));
+            var searchParameters = new LqSearchParameters
+            {
+                Lq = query,
+                NumberOfResults = this._numberOfResults
+            };
+
+            return JsonConvert.DeserializeObject<SearchResult>(this.GetStringFromPost(this._searchEndPoint, this.CreateStringContent(searchParameters)));
+        }
+
+        public ISearchResult QSearch(string query)
+        {
+            var searchParameters = new QSearchParameters
+            {
+                Q = query,
+                NumberOfResults = this._numberOfResults
+            };
+
+            return JsonConvert.DeserializeObject<SearchResult>(this.GetStringFromPost(this._searchEndPoint, this.CreateStringContent(searchParameters)));
         }
 
         private string GetStringFromPost(string url, StringContent content)
@@ -36,15 +53,9 @@ namespace WhisperAPI.Services.Search
             return response.Content.ReadAsStringAsync().Result;
         }
 
-        private StringContent CreateStringContent(string query)
+        private StringContent CreateStringContent(SearchParameters parameters)
         {
-            var searchParameters = new SearchParameters
-            {
-                Lq = query,
-                NumberOfResults = this._numberOfResults
-            };
-
-            var json = JsonConvert.SerializeObject(searchParameters);
+            var json = JsonConvert.SerializeObject(parameters);
             return new StringContent(json, Encoding.UTF8, "application/json");
         }
 

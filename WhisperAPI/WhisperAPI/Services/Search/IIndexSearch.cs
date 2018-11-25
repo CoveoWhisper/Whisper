@@ -4,6 +4,8 @@ namespace WhisperAPI.Services.Search
 {
     public interface IIndexSearch
     {
-        ISearchResult Search(string query);
+        ISearchResult LqSearch(string query);
+
+        ISearchResult QSearch(string query);
     }
 }

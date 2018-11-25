@@ -451,7 +451,7 @@ namespace WhisperAPI.Tests.Unit
         private void SetUpIndexSearchMockToReturn(ISearchResult searchResult)
         {
             this._indexSearchMock
-                .Setup(x => x.Search(It.IsAny<string>()))
+                .Setup(x => x.LqSearch(It.IsAny<string>()))
                 .Returns(searchResult);
         }
     }
