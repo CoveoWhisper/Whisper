@@ -148,7 +148,7 @@ namespace WhisperAPI.Services.Suggestions
         internal async Task<IEnumerable<Recommendation<Document>>> GetQuerySearchRecommendations(ConversationContext conversationContext)
         {
             var allParsedRelevantQueries = conversationContext.ContextItems
-                .Where(c => c.SearchQuery.Type == SearchQuery.MessageType.Customer)
+                .Where(c => c.SearchQuery.Type == SearchQuery.MessageType.Customer && c.Relevant)
                 .Select(x => x.NlpAnalysis.ParsedQuery).ToList();
 
             var allWords = string.Join(" ", allParsedRelevantQueries.ToArray()).Split(" ").AsEnumerable();
