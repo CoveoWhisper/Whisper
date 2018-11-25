@@ -22,7 +22,7 @@ namespace WhisperAPI.Models
             this.LastSuggestedQuestions = new List<Question>();
             this.Questions = new HashSet<Question>();
             this.SelectedSuggestedDocuments = new HashSet<Document>();
-            this.FilterDocumentsParameters = new FilterDocumentsParameters();
+            this.MustHaveFacets = new List<Facet>();
         }
 
         public Guid ChatKey { get; set; }
@@ -45,6 +45,6 @@ namespace WhisperAPI.Models
 
         public List<Question> LastSuggestedQuestions { get; set; }
 
-        public FilterDocumentsParameters FilterDocumentsParameters { get; set; }
+        public List<Facet> MustHaveFacets { get; set; }
     }
 }

@@ -23,19 +23,15 @@ namespace WhisperAPI.Services.Suggestions
 
         private readonly IDocumentFacets _documentFacets;
 
-        private readonly IFilterDocuments _filterDocuments;
-
         private readonly RecommenderSettings _recommenderSettings;
 
         public SuggestionsService(
             IIndexSearch indexSearch,
             IDocumentFacets documentFacets,
-            IFilterDocuments filterDocuments,
             RecommenderSettings recommenderSettings)
         {
             this._indexSearch = indexSearch;
             this._documentFacets = documentFacets;
-            this._filterDocuments = filterDocuments;
             this._recommenderSettings = recommenderSettings;
         }
 
@@ -222,6 +218,8 @@ namespace WhisperAPI.Services.Suggestions
             return FilterOutChosenQuestions(conversationContext, questions);
         }
 
+        //Now unused, but kept in case we choose to use it again
+        /*
         private List<string> FilterDocumentsByFacet(IEnumerable<Document> documentsToFilter, List<Facet> mustHaveFacets)
         {
             var filterParameter = new FilterDocumentsParameters
@@ -231,6 +229,7 @@ namespace WhisperAPI.Services.Suggestions
             };
             return this._filterDocuments.FilterDocumentsByFacets(filterParameter);
         }
+        */
 
         private IEnumerable<Recommendation<Question>> GenerateQuestions(ConversationContext conversationContext, IEnumerable<Document> documents)
         {
@@ -252,7 +251,7 @@ namespace WhisperAPI.Services.Suggestions
 
         private IEnumerable<Tuple<Document, double>> SearchCoveoIndex(string query, ConversationContext conversationContext)
         {
-            ISearchResult searchResult = this._indexSearch.Search(query, conversationContext.FilterDocumentsParameters.MustHaveFacets);
+            ISearchResult searchResult = this._indexSearch.Search(query, conversationContext.MustHaveFacets);
             var documents = new List<Tuple<Document, double>>();
 
             if (searchResult == null)

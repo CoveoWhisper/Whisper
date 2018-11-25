@@ -81,7 +81,6 @@ namespace WhisperAPI
                 x => new SuggestionsService(
                     x.GetService<IIndexSearch>(),
                     x.GetService<IDocumentFacets>(),
-                    x.GetService<IFilterDocuments>(),
                     recommenderSettings));
 
             services.AddTransient<IQuestionsService>(x => new QuestionsService());

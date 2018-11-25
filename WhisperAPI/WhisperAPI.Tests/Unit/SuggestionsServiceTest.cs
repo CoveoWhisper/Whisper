@@ -35,7 +35,6 @@ namespace WhisperAPI.Tests.Unit
             this._indexSearchMock = new Mock<IIndexSearch>();
             this._nlpCallMock = new Mock<INlpCall>();
             this._documentFacetsMock = new Mock<IDocumentFacets>();
-            this._filterDocuments = new Mock<IFilterDocuments>();
 
             var recommenderSettings = new RecommenderSettings
             {
@@ -45,7 +44,7 @@ namespace WhisperAPI.Tests.Unit
                 UsePreprocessedQuerySearchReccomender = true
             };
 
-            this._suggestionsService = new SuggestionsService(this._indexSearchMock.Object, this._documentFacetsMock.Object, this._filterDocuments.Object, recommenderSettings);
+            this._suggestionsService = new SuggestionsService(this._indexSearchMock.Object, this._documentFacetsMock.Object, recommenderSettings);
             this._conversationContext = new ConversationContext(new Guid("a21d07d5-fd5a-42ab-ac2c-2ef6101e58d9"), DateTime.Now);
         }
 

@@ -70,7 +70,7 @@ namespace WhisperAPI.Services.Questions
             if (question != null)
             {
                 question.Status = QuestionStatus.Rejected;
-                context.FilterDocumentsParameters.MustHaveFacets.RemoveAll(x => x.Id == question.Id);
+                context.MustHaveFacets.RemoveAll(x => x.Id == question.Id);
                 return true;
             }
 
@@ -115,7 +115,7 @@ namespace WhisperAPI.Services.Questions
             {
                 case FacetQuestion facetQuestion:
                     this.UpdateQuestionWithAnswer(facetQuestion, messageText);
-                    context.FilterDocumentsParameters.MustHaveFacets.Add(BuildFaceFromFacetQuestion(facetQuestion));
+                    context.MustHaveFacets.Add(BuildFaceFromFacetQuestion(facetQuestion));
                     return;
             }
 

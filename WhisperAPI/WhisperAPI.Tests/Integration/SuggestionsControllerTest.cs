@@ -53,12 +53,10 @@ namespace WhisperAPI.Tests.Integration
             var indexSearchHttpClient = new HttpClient(this._indexSearchHttpMessageHandleMock.Object);
             var nlpCallHttpClient = new HttpClient(this._nlpCallHttpMessageHandleMock.Object);
             var documentFacetHttpClient = new HttpClient(this._documentFacetsHttpMessageHandleMock.Object);
-            var filterDocumentHttpClient = new HttpClient(this._filterDocumentsHttpMessageHandleMock.Object);
 
             var indexSearch = new IndexSearch(null, this._numberOfResults, indexSearchHttpClient, "https://localhost:5000");
             var nlpCall = new NlpCall(nlpCallHttpClient, this.GetIrrelevantIntents(), "https://localhost:5000");
             var documentFacets = new DocumentFacets(documentFacetHttpClient, "https://localhost:5000");
-            var filterDocuments = new FilterDocuments(filterDocumentHttpClient, "https://localhost:5000");
 
             var recommenderSettings = new RecommenderSettings
             {
@@ -68,7 +66,7 @@ namespace WhisperAPI.Tests.Integration
                 UsePreprocessedQuerySearchReccomender = false
             };
 
-            var suggestionsService = new SuggestionsService(indexSearch, documentFacets, filterDocuments, recommenderSettings);
+            var suggestionsService = new SuggestionsService(indexSearch, documentFacets, recommenderSettings);
 
             var contexts = new InMemoryContexts(new TimeSpan(1, 0, 0, 0));
             var questionsService = new QuestionsService();

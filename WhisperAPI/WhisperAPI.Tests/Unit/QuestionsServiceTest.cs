@@ -55,11 +55,11 @@ namespace WhisperAPI.Tests.Unit
             if (shouldDetectAnswer)
             {
                 Assert.AreEqual(expectedAnswer, ((FacetQuestion)this._conversationContext.AnsweredQuestions.Single()).Answer);
-                this._conversationContext.FilterDocumentsParameters.MustHaveFacets.Should().HaveCount(1);
+                this._conversationContext.MustHaveFacets.Should().HaveCount(1);
             }
             else
             {
-                this._conversationContext.FilterDocumentsParameters.MustHaveFacets.Should().HaveCount(0);
+                this._conversationContext.MustHaveFacets.Should().HaveCount(0);
             }
         }
 
@@ -106,12 +106,12 @@ namespace WhisperAPI.Tests.Unit
                 .WithName(questionToRejected.FacetName)
                 .Instance;
 
-            this._conversationContext.FilterDocumentsParameters.MustHaveFacets.Add(facet);
+            this._conversationContext.MustHaveFacets.Add(facet);
             this._conversationContext.Questions.Add(questionToRejected);
 
             Assert.IsTrue(this._questionsService.RejectAnswer(this._conversationContext, questionToRejected.Id));
             Assert.AreEqual(QuestionStatus.Rejected, questionToRejected.Status);
-            this._conversationContext.FilterDocumentsParameters.MustHaveFacets.Should().HaveCount(0);
+            this._conversationContext.MustHaveFacets.Should().HaveCount(0);
         }
     }
 }
