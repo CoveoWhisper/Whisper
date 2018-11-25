@@ -47,7 +47,7 @@ namespace WhisperAPI.Services.Suggestions
             var tasks = new List<Task<IEnumerable<Recommendation<Document>>>>();
             if (this._recommenderSettings.UseLongQuerySearchRecommender)
             {
-                tasks.Add(Task.Run(() => this.GetLongQuerySearchRecommendations(conversationContext)));
+                tasks.Add(this.GetLongQuerySearchRecommendations(conversationContext));
             }
 
             if (this._recommenderSettings.UsePreprocessedQuerySearchRecommender)
@@ -60,7 +60,7 @@ namespace WhisperAPI.Services.Suggestions
                 // TODO
             }
 
-            var allRecommendedDocuments = Task.WhenAll(tasks.ToList()).Result.ToList();
+            var allRecommendedDocuments = Task.WhenAll(tasks).Result.ToList();
 
             // TODO ensure documents are filtered, here, in the calls or afterwards
             var mergedDocuments = this.MergeRecommendedDocuments(allRecommendedDocuments);

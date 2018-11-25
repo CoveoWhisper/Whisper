@@ -35,7 +35,7 @@ namespace WhisperAPI.Services.Search
             HttpResponseMessage response = await this._httpClient.PostAsync(url, content);
             response.EnsureSuccessStatusCode();
 
-            return response.Content.ReadAsStringAsync().Result;
+            return await response.Content.ReadAsStringAsync();
         }
 
         private StringContent CreateStringContent(string query)
