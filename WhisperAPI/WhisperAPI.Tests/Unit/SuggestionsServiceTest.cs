@@ -21,7 +21,7 @@ namespace WhisperAPI.Tests.Unit
     [TestFixture]
     public class SuggestionsServiceTest
     {
-        private ISuggestionsService _suggestionsService;
+        private SuggestionsService _suggestionsService;
 
         private Mock<IIndexSearch> _indexSearchMock;
         private Mock<INlpCall> _nlpCallMock;
@@ -45,23 +45,41 @@ namespace WhisperAPI.Tests.Unit
                 UsePreprocessedQuerySearchRecommender = true
             };
 
-            this._suggestionsService = new SuggestionsService(this._indexSearchMock.Object, this._documentFacetsMock.Object, this._filterDocuments.Object, recommenderSettings);
+            this._suggestionsService = new SuggestionsService(this._indexSearchMock.Object, this._documentFacetsMock.Object, this._filterDocuments.Object, 7, recommenderSettings);
             this._conversationContext = new ConversationContext(new Guid("a21d07d5-fd5a-42ab-ac2c-2ef6101e58d9"), DateTime.Now);
         }
 
         [Test]
-        public void When_receive_valid_search_result_from_search_then_return_list_of_suggestedDocuments()
+        public void When_receive_valid_search_result_from_lq_search_then_return_list_of_suggestedDocuments()
         {
-            this.SetUpIndexSearchMockToReturn(this.GetSearchResult());
-            this._suggestionsService.GetLongQuerySearchRecommendations(this.GetConversationContext()).Result.Should().BeEquivalentTo(this.GetSuggestedDocuments());
+            this.SetUpLqIndexSearchMockToReturn(this.GetSearchResult());
+
+            var recommendedBy = new List<RecommenderType>
+            {
+                RecommenderType.LongQuerySearch
+            };
+
+            this._suggestionsService.GetLongQuerySearchRecommendations(this.GetConversationContext(true)).Result.Should().BeEquivalentTo(this.GetSuggestedDocuments(recommendedBy));
+        }
+
+        [Test]
+        public void When_receive_valid_search_result_from_q_search_then_return_list_of_suggestedDocuments()
+        {
+            this.SetUpQIndexSearchMockToReturn(this.GetSearchResult());
+
+            var recommendedBy = new List<RecommenderType>
+            {
+                RecommenderType.PreprocessedQuerySearch
+            };
+
+            this._suggestionsService.GetQuerySearchRecommendations(this.GetConversationContext(true)).Result.Should().BeEquivalentTo(this.GetSuggestedDocuments(recommendedBy));
         }
 
         [Test]
         public void When_receive_irrelevant_intent_then_returns_empty_list_of_suggestedDocuments()
         {
-            this.SetUpNLPCallMockToReturn(NlpAnalysisBuilder.Build.Instance, false);
-
-            this._suggestionsService.GetLongQuerySearchRecommendations(this.GetConversationContext()).Result.Should().BeEquivalentTo(new List<Recommendation<Document>>());
+            this._suggestionsService.GetLongQuerySearchRecommendations(this.GetConversationContext(false)).Result.Should().BeEquivalentTo(new List<Recommendation<Document>>());
+            this._suggestionsService.GetQuerySearchRecommendations(this.GetConversationContext(false)).Result.Should().BeEquivalentTo(new List<Recommendation<Document>>());
         }
 
         [Test]
@@ -69,7 +87,7 @@ namespace WhisperAPI.Tests.Unit
         {
             var suggestion = ((SuggestionsService)this._suggestionsService).FilterOutChosenSuggestions(
                 this.GetDocumentsWithScore(),
-                this.GetQueriesSentByByAgent().Select(x => ContextItemBuilder.Build.WithSearchQuery(x).Instance));
+                this.GetQueriesSentByAgent().Select(x => ContextItemBuilder.Build.WithSearchQuery(x).Instance));
 
             suggestion.Should().HaveCount(2);
             suggestion.Should().NotContain(this.GetDocumentsWithScore().ToList().Find(x =>
@@ -118,7 +136,7 @@ namespace WhisperAPI.Tests.Unit
         {
             this._conversationContext.SelectedSuggestedDocuments.Clear();
             this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
-            this.SetUpIndexSearchMockToReturn(this.GetSearchResult());
+            this.SetUpLqIndexSearchMockToReturn(this.GetSearchResult());
 
             var suggestionQuery = SearchQueryBuilder.Build
                 .WithMaxDocuments(maxDocuments)
@@ -142,7 +160,7 @@ namespace WhisperAPI.Tests.Unit
             this._conversationContext.SelectedSuggestedDocuments.Clear();
 
             this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
-            this.SetUpIndexSearchMockToReturn(this.GetSearchResult());
+            this.SetUpLqIndexSearchMockToReturn(this.GetSearchResult());
 
             var searchQuery = SearchQueryBuilder.Build
                 .WithMaxDocuments(maxDocuments)
@@ -154,7 +172,12 @@ namespace WhisperAPI.Tests.Unit
             this._suggestionsService.UpdateContextWithNewItem(this._conversationContext, nlpAnalysis, searchQuery, true);
             var suggestion = this._suggestionsService.GetNewSuggestion(this._conversationContext, searchQuery);
 
-            suggestion.Documents.Should().HaveCount(this.GetSuggestedDocuments().Count);
+            var recommendedBy = new List<RecommenderType>
+            {
+                RecommenderType.LongQuerySearch
+            };
+
+            suggestion.Documents.Should().HaveCount(this.GetSuggestedDocuments(recommendedBy).Count);
         }
 
         [Test]
@@ -165,7 +188,7 @@ namespace WhisperAPI.Tests.Unit
         {
             this._conversationContext.Questions.Clear();
             this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
-            this.SetUpIndexSearchMockToReturn(this.GetSearchResult());
+            this.SetUpLqIndexSearchMockToReturn(this.GetSearchResult());
 
             var suggestionQuery = SearchQueryBuilder.Build
                 .WithMaxQuestions(maxQuestions)
@@ -193,7 +216,7 @@ namespace WhisperAPI.Tests.Unit
             this.SetUpNLPCallMockToReturn(nlpAnalysis, true);
 
             this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
-            this.SetUpIndexSearchMockToReturn(this.GetSearchResult());
+            this.SetUpLqIndexSearchMockToReturn(this.GetSearchResult());
 
             var suggestionQuery = SearchQueryBuilder.Build
                 .WithMaxQuestions(maxQuestions)
@@ -205,7 +228,74 @@ namespace WhisperAPI.Tests.Unit
             suggestion.Questions.Should().HaveCount(this.GetSuggestedQuestions().Count);
         }
 
-        public List<SearchQuery> GetQueriesSentByByAgent()
+        [Test]
+        public void When_having_less_words_into_parsed_query_than_numberOfWordsIntoQ_then_return_all_words()
+        {
+            var context = new ConversationContext(new Guid("0f8fad5b-d9cb-469f-a165-708677289501"), DateTime.Now)
+            {
+                ContextItems = new List<ContextItem>
+                {
+                    ContextItemBuilder.Build
+                        .WithSearchQuery(
+                            SearchQueryBuilder.Build
+                                .WithChatKey(new Guid("0f8fad5b-d9cb-469f-a165-708677289501"))
+                                .WithQuery("I need help with coveo search api")
+                                .WithMessageType(SearchQuery.MessageType.Customer)
+                                .Instance)
+                        .WithRelevant(true)
+                        .WithNlpAnalysis(
+                            NlpAnalysisBuilder.Build
+                                .WithQuery("search api")
+                                .Instance)
+                        .Instance
+                }
+            };
+
+            var query = this._suggestionsService.CreateQuery(context);
+            query.Split(" ").Length.Should().Be(2);
+        }
+
+        [Test]
+        public void When_having_more_words_into_parsed_query_than_numberOfWordsIntoQ_then_return_numberOfWordsIntoQ_words()
+        {
+            var context = new ConversationContext(new Guid("0f8fad5b-d9cb-469f-a165-708677289501"), DateTime.Now)
+            {
+                ContextItems = new List<ContextItem>
+                {
+                    ContextItemBuilder.Build
+                        .WithSearchQuery(
+                            SearchQueryBuilder.Build
+                                .WithChatKey(new Guid("0f8fad5b-d9cb-469f-a165-708677289501"))
+                                .WithQuery("I need help with coveo search api")
+                                .WithMessageType(SearchQuery.MessageType.Customer)
+                                .Instance)
+                        .WithRelevant(true)
+                        .WithNlpAnalysis(
+                            NlpAnalysisBuilder.Build
+                                .WithQuery("search api")
+                                .Instance)
+                        .Instance,
+                    ContextItemBuilder.Build
+                        .WithSearchQuery(
+                            SearchQueryBuilder.Build
+                                .WithChatKey(new Guid("0f8fad5b-d9cb-469f-a165-708677289501"))
+                                .WithQuery("I need help with coveo search api")
+                                .WithMessageType(SearchQuery.MessageType.Customer)
+                                .Instance)
+                        .WithRelevant(true)
+                        .WithNlpAnalysis(
+                            NlpAnalysisBuilder.Build
+                                .WithQuery("coveo test year month word hi")
+                                .Instance)
+                        .Instance
+                }
+            };
+
+            var query = this._suggestionsService.CreateQuery(context);
+            query.Split(" ").Length.Should().Be(7);
+        }
+
+        public List<SearchQuery> GetQueriesSentByAgent()
         {
             return new List<SearchQuery>
             {
@@ -271,7 +361,7 @@ namespace WhisperAPI.Tests.Unit
             };
         }
 
-        public List<Recommendation<Document>> GetSuggestedDocuments()
+        public List<Recommendation<Document>> GetSuggestedDocuments(List<RecommenderType> recommenderTypes)
         {
             return new List<Recommendation<Document>>
             {
@@ -281,34 +371,43 @@ namespace WhisperAPI.Tests.Unit
                         .WithUri("https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm")
                         .WithPrintableUri("https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm")
                         .Instance)
-                    .WithConfidence(0.98).Instance,
+                    .WithConfidence(0.98)
+                    .WithRecommendationType(recommenderTypes).Instance,
                 RecommendationBuilder<Document>.Build.WithValue(
                     DocumentBuilder.Build
                         .WithTitle("Coveo Cloud Query Syntax Reference")
                         .WithUri("https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm")
                         .WithPrintableUri("https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm")
                         .Instance)
-                    .WithConfidence(0.96).Instance,
+                    .WithConfidence(0.96)
+                    .WithRecommendationType(recommenderTypes).Instance,
                 RecommendationBuilder<Document>.Build.WithValue(
                     DocumentBuilder.Build
                         .WithTitle("Events")
                         .WithUri("https://developers.coveo.com/display/JsSearchV1/Page/27230520/27230472/27230573")
                         .WithPrintableUri("https://developers.coveo.com/display/JsSearchV1/Page/27230520/27230472/27230573")
                         .Instance)
-                    .WithConfidence(0.80).Instance,
+                    .WithConfidence(0.80)
+                    .WithRecommendationType(recommenderTypes).Instance,
                 RecommendationBuilder<Document>.Build.WithValue(
                     DocumentBuilder.Build
                         .WithTitle("Coveo Facet Component (CoveoFacet)")
                         .WithUri("https://coveo.github.io/search-ui/components/facet.html")
                         .WithPrintableUri("https://coveo.github.io/search-ui/components/facet.html")
                         .Instance)
-                    .WithConfidence(0.51).Instance
+                    .WithConfidence(0.51)
+                    .WithRecommendationType(recommenderTypes).Instance
             };
         }
 
         public IEnumerable<Tuple<Document, double>> GetDocumentsWithScore()
         {
-            return this.GetSuggestedDocuments().Select(d => new Tuple<Document, double>(d.Value, d.Confidence));
+            var recommendedBy = new List<RecommenderType>
+            {
+                RecommenderType.LongQuerySearch
+            };
+
+            return this.GetSuggestedDocuments(recommendedBy).Select(d => new Tuple<Document, double>(d.Value, d.Confidence));
         }
 
         public List<FacetQuestion> GetSuggestedQuestions()
@@ -322,7 +421,7 @@ namespace WhisperAPI.Tests.Unit
             };
         }
 
-        public ConversationContext GetConversationContext()
+        public ConversationContext GetConversationContext(bool relevant)
         {
             ConversationContext context = new ConversationContext(new Guid("0f8fad5b-d9cb-469f-a165-708677289501"), DateTime.Now)
             {
@@ -332,10 +431,14 @@ namespace WhisperAPI.Tests.Unit
                     .WithSearchQuery(
                         SearchQueryBuilder.Build
                         .WithChatKey(new Guid("0f8fad5b-d9cb-469f-a165-708677289501"))
-                        .WithQuery("rest api")
+                        .WithQuery("I need help with coveo search api")
                         .WithMessageType(SearchQuery.MessageType.Customer)
                         .Instance)
-                    .WithRelevant(true)
+                    .WithRelevant(relevant)
+                    .WithNlpAnalysis(
+                        NlpAnalysisBuilder.Build
+                        .WithQuery("search api")
+                        .Instance)
                     .Instance
                 }
             };
@@ -356,10 +459,17 @@ namespace WhisperAPI.Tests.Unit
                 .Returns(nlpAnalysis);
         }
 
-        private void SetUpIndexSearchMockToReturn(ISearchResult searchResult)
+        private void SetUpLqIndexSearchMockToReturn(ISearchResult searchResult)
         {
             this._indexSearchMock
                 .Setup(x => x.LqSearch(It.IsAny<string>()))
+                .Returns(Task.FromResult(searchResult));
+        }
+
+        private void SetUpQIndexSearchMockToReturn(ISearchResult searchResult)
+        {
+            this._indexSearchMock
+                .Setup(x => x.QSearch(It.IsAny<string>()))
                 .Returns(Task.FromResult(searchResult));
         }
     }

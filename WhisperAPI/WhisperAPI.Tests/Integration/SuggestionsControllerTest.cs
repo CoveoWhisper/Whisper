@@ -69,7 +69,7 @@ namespace WhisperAPI.Tests.Integration
                 UsePreprocessedQuerySearchRecommender = false
             };
 
-            var suggestionsService = new SuggestionsService(indexSearch, documentFacets, filterDocuments, this._recommenderSettings);
+            var suggestionsService = new SuggestionsService(indexSearch, documentFacets, filterDocuments, 7, this._recommenderSettings);
 
             var contexts = new InMemoryContexts(new TimeSpan(1, 0, 0, 0));
             var questionsService = new QuestionsService();

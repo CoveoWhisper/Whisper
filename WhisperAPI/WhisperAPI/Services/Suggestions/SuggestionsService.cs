@@ -28,15 +28,19 @@ namespace WhisperAPI.Services.Suggestions
 
         private readonly RecommenderSettings _recommenderSettings;
 
+        private readonly int _numberOfWordsIntoQ;
+
         public SuggestionsService(
             IIndexSearch indexSearch,
             IDocumentFacets documentFacets,
             IFilterDocuments filterDocuments,
+            int numberOfWordsIntoQ,
             RecommenderSettings recommenderSettings)
         {
             this._indexSearch = indexSearch;
             this._documentFacets = documentFacets;
             this._filterDocuments = filterDocuments;
+            this._numberOfWordsIntoQ = numberOfWordsIntoQ;
             this._recommenderSettings = recommenderSettings;
         }
 
@@ -147,14 +151,9 @@ namespace WhisperAPI.Services.Suggestions
 
         internal async Task<IEnumerable<Recommendation<Document>>> GetQuerySearchRecommendations(ConversationContext conversationContext)
         {
-            var allParsedRelevantQueries = conversationContext.ContextItems
-                .Where(c => c.SearchQuery.Type == SearchQuery.MessageType.Customer && c.Relevant)
-                .Select(x => x.NlpAnalysis.ParsedQuery).ToList();
+            var query = this.CreateQuery(conversationContext);
 
-            var allWords = string.Join(" ", allParsedRelevantQueries.ToArray()).Split(" ").AsEnumerable();
-            var query = string.Join(" ", allWords.Reverse().Take(7));
-
-            if (string.IsNullOrEmpty(query.Trim()))
+            if (string.IsNullOrWhiteSpace(query))
             {
                 return new List<Recommendation<Document>>();
             }
@@ -172,6 +171,41 @@ namespace WhisperAPI.Services.Suggestions
                     RecommenderType.PreprocessedQuerySearch
                 }
             });
+        }
+
+        internal string CreateQuery(ConversationContext conversationContext)
+        {
+            var words = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+            var queryWords = new Queue<string>();
+
+            using (var allParsedRelevantQueriesEnumerator = conversationContext.ContextItems
+                .Where(c => c.SearchQuery.Type == SearchQuery.MessageType.Customer && c.Relevant)
+                .Select(x => x.NlpAnalysis.ParsedQuery).Reverse().GetEnumerator())
+            {
+                while (words.Count < this._numberOfWordsIntoQ)
+                {
+                    if (!queryWords.Any())
+                    {
+                        if (!allParsedRelevantQueriesEnumerator.MoveNext())
+                        {
+                            break;
+                        }
+
+                        var parsedQueryWords = allParsedRelevantQueriesEnumerator.Current.Split(" ");
+
+                        foreach (var word in parsedQueryWords)
+                        {
+                            queryWords.Enqueue(word);
+                        }
+                    }
+                    else
+                    {
+                        words.Add(queryWords.Dequeue());
+                    }
+                }
+            }
+
+            return string.Join(" ", words);
         }
 
         // We assume that every list of recommendations is already filtered by confidence descending
