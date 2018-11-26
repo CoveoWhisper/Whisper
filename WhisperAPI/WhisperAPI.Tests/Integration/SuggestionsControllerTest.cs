@@ -41,7 +41,6 @@ namespace WhisperAPI.Tests.Integration
         private Mock<HttpMessageHandler> _indexSearchHttpMessageHandleMock;
         private Mock<HttpMessageHandler> _nlpCallHttpMessageHandleMock;
         private Mock<HttpMessageHandler> _documentFacetsHttpMessageHandleMock;
-        private Mock<HttpMessageHandler> _filterDocumentsHttpMessageHandleMock;
 
         [SetUp]
         public void SetUp()
@@ -49,7 +48,6 @@ namespace WhisperAPI.Tests.Integration
             this._indexSearchHttpMessageHandleMock = new Mock<HttpMessageHandler>();
             this._nlpCallHttpMessageHandleMock = new Mock<HttpMessageHandler>();
             this._documentFacetsHttpMessageHandleMock = new Mock<HttpMessageHandler>();
-            this._filterDocumentsHttpMessageHandleMock = new Mock<HttpMessageHandler>();
 
             var indexSearchHttpClient = new HttpClient(this._indexSearchHttpMessageHandleMock.Object);
             var nlpCallHttpClient = new HttpClient(this._nlpCallHttpMessageHandleMock.Object);
@@ -472,6 +470,8 @@ namespace WhisperAPI.Tests.Integration
                 }));
         }
 
+        // Now unused, but kept in case we choose to use it again
+        /*
         private void FilterDocumentHttpMessageHandleMock(HttpStatusCode statusCode, HttpContent content)
         {
             this._filterDocumentsHttpMessageHandleMock.Protected()
@@ -482,6 +482,7 @@ namespace WhisperAPI.Tests.Integration
                     Content = content
                 }));
         }
+        */
 
         private ActionExecutingContext GetActionExecutingContext(Query query)
         {

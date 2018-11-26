@@ -109,12 +109,9 @@ namespace WhisperAPI.Tests.Unit
             var facet2 = FacetBuilder.Build
                 .WithName("John").WithValue("Doe")
                 .Instance;
-            var parameters = FilterDocumentsParametersBuilder.Build
-                .AddMustHaveFacet(facet)
-                .AddMustHaveFacet(facet2)
-                .Instance;
+            var mustHaveFacets = new List<Facet> { facet, facet2 };
 
-            var result = ((IndexSearch)this._indexSearch).GenerateAdvancedQuery(parameters.MustHaveFacets);
+            var result = ((IndexSearch)this._indexSearch).GenerateAdvancedQuery(mustHaveFacets);
 
             result.Should().BeEquivalentTo(" (@Bob==Ross) (@John==Doe)");
         }
