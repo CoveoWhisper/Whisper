@@ -26,13 +26,17 @@ namespace WhisperAPI.Services.Suggestions
 
         private readonly RecommenderSettings _recommenderSettings;
 
+        private readonly int _numberOfWordsIntoQ;
+
         public SuggestionsService(
             IIndexSearch indexSearch,
             IDocumentFacets documentFacets,
+            int numberOfWordsIntoQ,
             RecommenderSettings recommenderSettings)
         {
             this._indexSearch = indexSearch;
             this._documentFacets = documentFacets;
+            this._numberOfWordsIntoQ = numberOfWordsIntoQ;
             this._recommenderSettings = recommenderSettings;
         }
 
@@ -48,7 +52,7 @@ namespace WhisperAPI.Services.Suggestions
 
             if (this._recommenderSettings.UsePreprocessedQuerySearchRecommender)
             {
-                // TODO
+                tasks.Add(this.GetQuerySearchRecommendations(conversationContext));
             }
 
             if (this._recommenderSettings.UseAnalyticsSearchRecommender)
@@ -90,7 +94,8 @@ namespace WhisperAPI.Services.Suggestions
                 return new List<Recommendation<Document>>();
             }
 
-            var coveoIndexDocuments = await this.SearchCoveoIndex(allRelevantQueries, conversationContext.SuggestedDocuments.ToList(), conversationContext.MustHaveFacets);
+            var searchResult = await this._indexSearch.LqSearch(allRelevantQueries, conversationContext.MustHaveFacets);
+            var coveoIndexDocuments = this.CreateDocumentsFromCoveoSearch(searchResult, conversationContext.SuggestedDocuments.ToList());
             var documentsFiltered = this.FilterOutChosenSuggestions(coveoIndexDocuments, conversationContext.ContextItems);
 
             return documentsFiltered.Select(d => new Recommendation<Document>
@@ -131,6 +136,65 @@ namespace WhisperAPI.Services.Suggestions
             }
 
             return false;
+        }
+
+        internal async Task<IEnumerable<Recommendation<Document>>> GetQuerySearchRecommendations(ConversationContext conversationContext)
+        {
+            var query = this.CreateQuery(conversationContext);
+
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return new List<Recommendation<Document>>();
+            }
+
+            var searchResult = await this._indexSearch.QSearch(query, conversationContext.MustHaveFacets);
+            var coveoIndexDocuments = this.CreateDocumentsFromCoveoSearch(searchResult, conversationContext.SuggestedDocuments.ToList());
+            var documentsFiltered = this.FilterOutChosenSuggestions(coveoIndexDocuments, conversationContext.ContextItems);
+
+            return documentsFiltered.Select(d => new Recommendation<Document>
+            {
+                Value = d.Item1,
+                Confidence = d.Item2,
+                RecommendedBy = new List<RecommenderType>
+                {
+                    RecommenderType.PreprocessedQuerySearch
+                }
+            });
+        }
+
+        internal string CreateQuery(ConversationContext conversationContext)
+        {
+            var words = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+            var queryWords = new Queue<string>();
+
+            using (var allParsedRelevantQueriesEnumerator = conversationContext.ContextItems
+                .Where(c => c.SearchQuery.Type == SearchQuery.MessageType.Customer && c.Relevant)
+                .Select(x => x.NlpAnalysis.ParsedQuery).Reverse().GetEnumerator())
+            {
+                while (words.Count < this._numberOfWordsIntoQ)
+                {
+                    if (!queryWords.Any())
+                    {
+                        if (!allParsedRelevantQueriesEnumerator.MoveNext())
+                        {
+                            break;
+                        }
+
+                        var parsedQueryWords = allParsedRelevantQueriesEnumerator.Current.Split(" ");
+
+                        foreach (var word in parsedQueryWords)
+                        {
+                            queryWords.Enqueue(word);
+                        }
+                    }
+                    else
+                    {
+                        words.Add(queryWords.Dequeue());
+                    }
+                }
+            }
+
+            return string.Join(" ", words);
         }
 
         // We assume that every list of recommendations is already filtered by confidence descending
@@ -221,7 +285,7 @@ namespace WhisperAPI.Services.Suggestions
             return FilterOutChosenQuestions(conversationContext, questions);
         }
 
-        //Now unused, but kept in case we choose to use it again
+        // Now unused, but kept in case we choose to use it again
         /*
         private List<string> FilterDocumentsByFacet(IEnumerable<Document> documentsToFilter, List<Facet> mustHaveFacets)
         {
@@ -252,11 +316,9 @@ namespace WhisperAPI.Services.Suggestions
             });
         }
 
-        private async Task<IEnumerable<Tuple<Document, double>>> SearchCoveoIndex(string query, List<Document> suggestedDocuments, List<Facet> mustHaveFacets)
+        private IEnumerable<Tuple<Document, double>> CreateDocumentsFromCoveoSearch(ISearchResult searchResult, List<Document> suggestedDocuments)
         {
-            ISearchResult searchResult = await this._indexSearch.Search(query, mustHaveFacets);
             var documents = new List<Tuple<Document, double>>();
-
             if (searchResult == null)
             {
                 // error null result

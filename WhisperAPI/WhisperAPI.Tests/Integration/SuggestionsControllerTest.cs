@@ -34,8 +34,9 @@ namespace WhisperAPI.Tests.Integration
     [TestFixture]
     public class SuggestionsControllerTest
     {
+        private readonly int _numberOfResults = 1000;
         private SuggestionsController _suggestionController;
-        private int _numberOfResults = 1000;
+        private RecommenderSettings _recommenderSettings;
 
         private Mock<HttpMessageHandler> _indexSearchHttpMessageHandleMock;
         private Mock<HttpMessageHandler> _nlpCallHttpMessageHandleMock;
@@ -58,7 +59,7 @@ namespace WhisperAPI.Tests.Integration
             var nlpCall = new NlpCall(nlpCallHttpClient, this.GetIrrelevantIntents(), "https://localhost:5000");
             var documentFacets = new DocumentFacets(documentFacetHttpClient, "https://localhost:5000");
 
-            var recommenderSettings = new RecommenderSettings
+            this._recommenderSettings = new RecommenderSettings
             {
                 UseAnalyticsSearchRecommender = false,
                 UseFacetQuestionRecommender = true,
@@ -66,7 +67,7 @@ namespace WhisperAPI.Tests.Integration
                 UsePreprocessedQuerySearchRecommender = false
             };
 
-            var suggestionsService = new SuggestionsService(indexSearch, documentFacets, recommenderSettings);
+            var suggestionsService = new SuggestionsService(indexSearch, documentFacets, 7, this._recommenderSettings);
 
             var contexts = new InMemoryContexts(new TimeSpan(1, 0, 0, 0));
             var questionsService = new QuestionsService();
@@ -91,6 +92,30 @@ namespace WhisperAPI.Tests.Integration
 
             suggestion.Documents.Select(d => d.Value).Should().BeEquivalentTo(GetSuggestedDocuments());
             suggestion.Questions.Select(q => q.Value).Should().BeEquivalentTo(questionsToClient);
+        }
+
+        [Test]
+        public void When_getting_suggestions_with_preprocessed_then_returns_suggestions_correctly()
+        {
+            var questions = GetQuestions();
+            this._recommenderSettings.UsePreprocessedQuerySearchRecommender = true;
+
+            this.NlpCallHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(this.GetRelevantNlpAnalysis())));
+            this.IndexSearchHttpMessageHandleMock(HttpStatusCode.OK, this.GetSearchResultStringContent());
+            this.DocumentFacetsHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(questions)));
+            var searchQuery = SearchQueryBuilder.Build.Instance;
+
+            this._suggestionController.OnActionExecuting(this.GetActionExecutingContext(searchQuery));
+            var result = this._suggestionController.GetSuggestions(searchQuery);
+
+            var suggestion = result.As<OkObjectResult>().Value as Suggestion;
+
+            var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q)).ToList();
+
+            suggestion.Documents.Select(d => d.Value).Should().BeEquivalentTo(GetSuggestedDocuments());
+            suggestion.Questions.Select(q => q.Value).Should().BeEquivalentTo(questionsToClient);
+
+            suggestion.Documents.All(x => x.RecommendedBy.Count == 2).Should().BeTrue();
         }
 
         [Test]

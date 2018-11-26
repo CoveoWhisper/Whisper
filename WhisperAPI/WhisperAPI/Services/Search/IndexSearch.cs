@@ -30,9 +30,29 @@ namespace WhisperAPI.Services.Search
             this.InitHttpClient(searchBaseAddress);
         }
 
-        public async Task<ISearchResult> Search(string query, IEnumerable<Facet> mustHaveFacets)
+        public async Task<ISearchResult> QSearch(string query, IEnumerable<Facet> mustHaveFacets)
         {
-            var stringResult = await this.GetStringFromPost(this._searchEndPoint, this.CreateStringContent(query, mustHaveFacets));
+            var searchParameters = new QSearchParameters
+            {
+                Q = query,
+                NumberOfResults = this._numberOfResults,
+                AdvancedQuery = this.GenerateAdvancedQuery(mustHaveFacets)
+            };
+
+            var stringResult = await this.GetStringFromPost(this._searchEndPoint, this.CreateStringContent(searchParameters));
+            return JsonConvert.DeserializeObject<SearchResult>(stringResult);
+        }
+
+        public async Task<ISearchResult> LqSearch(string query, IEnumerable<Facet> mustHaveFacets)
+        {
+            var searchParameters = new LqSearchParameters
+            {
+                Lq = query,
+                NumberOfResults = this._numberOfResults,
+                AdvancedQuery = this.GenerateAdvancedQuery(mustHaveFacets)
+            };
+
+            var stringResult = await this.GetStringFromPost(this._searchEndPoint, this.CreateStringContent(searchParameters));
             return JsonConvert.DeserializeObject<SearchResult>(stringResult);
         }
 
@@ -49,16 +69,9 @@ namespace WhisperAPI.Services.Search
             return await response.Content.ReadAsStringAsync();
         }
 
-        private StringContent CreateStringContent(string query, IEnumerable<Facet> mustHaveFacets)
+        private StringContent CreateStringContent(SearchParameters parameters)
         {
-            var searchParameters = new SearchParameters
-            {
-                Lq = query,
-                NumberOfResults = this._numberOfResults,
-                AdvancedQuery = this.GenerateAdvancedQuery(mustHaveFacets)
-            };
-
-            var json = JsonConvert.SerializeObject(searchParameters);
+            var json = JsonConvert.SerializeObject(parameters);
             return new StringContent(json, Encoding.UTF8, "application/json");
         }
 

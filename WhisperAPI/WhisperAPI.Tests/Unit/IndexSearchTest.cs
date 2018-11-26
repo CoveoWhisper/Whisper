@@ -45,8 +45,24 @@ namespace WhisperAPI.Tests.Unit
 
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
             IIndexSearch indexSearchOK = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000");
+            indexSearchOK.LqSearch(query, new List<Facet>()).Result.Should().BeEquivalentTo(this.GetSearchResult());
+        }
 
-            indexSearchOK.Search(query, new List<Facet>()).Result.Should().BeEquivalentTo(this.GetSearchResult());
+        [Test]
+        [TestCase("test")]
+        public void When_receive_ok_response_from_q_post_then_return_result_correctly(string query)
+        {
+            this._httpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .Returns(Task.FromResult(new HttpResponseMessage
+                {
+                    StatusCode = System.Net.HttpStatusCode.OK,
+                    Content = this.GetStringContent()
+                }));
+
+            this._httpClient = new HttpClient(this._httpMessageHandler.Object);
+            IIndexSearch indexSearchOK = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000");
+            indexSearchOK.QSearch(query, new List<Facet>()).Result.Should().BeEquivalentTo(this.GetSearchResult());
         }
 
         [Test]
@@ -63,8 +79,7 @@ namespace WhisperAPI.Tests.Unit
 
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
             IIndexSearch indexSearchNotFound = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000");
-
-            Assert.Throws<AggregateException>(() => indexSearchNotFound.Search(query, new List<Facet>()).Wait());
+            Assert.Throws<AggregateException>(() => indexSearchNotFound.LqSearch(query, new List<Facet>()).Wait());
         }
 
         [Test]
@@ -82,7 +97,7 @@ namespace WhisperAPI.Tests.Unit
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
             IIndexSearch indexSearchOKNoContent = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000");
 
-            indexSearchOKNoContent.Search(query, new List<Facet>()).Result.Should().BeEquivalentTo((SearchResult)null);
+            indexSearchOKNoContent.LqSearch(query, new List<Facet>()).Result.Should().BeEquivalentTo((SearchResult)null);
         }
 
         [Test]

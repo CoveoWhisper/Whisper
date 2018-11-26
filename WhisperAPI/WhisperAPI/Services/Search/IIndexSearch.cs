@@ -7,6 +7,8 @@ namespace WhisperAPI.Services.Search
 {
     public interface IIndexSearch
     {
-        Task<ISearchResult> Search(string query, IEnumerable<Facet> mustHaveFacets);
+        Task<ISearchResult> LqSearch(string query, IEnumerable<Facet> mustHaveFacets);
+
+        Task<ISearchResult> QSearch(string query, IEnumerable<Facet> mustHaveFacets);
     }
 }
