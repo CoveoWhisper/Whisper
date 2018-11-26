@@ -16,6 +16,8 @@ namespace WhisperAPI.Settings
 
         public int NumberOfResults { get; set; }
 
+        public int NumberOfWordsIntoQ { get; set; }
+
         public string ContextLifeSpan { get; set; }
     }
 }
