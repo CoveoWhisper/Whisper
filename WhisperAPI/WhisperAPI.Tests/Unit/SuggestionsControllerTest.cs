@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -77,7 +78,7 @@ namespace WhisperAPI.Tests.Unit
             this._suggestionServiceMock = new Mock<ISuggestionsService>();
             this._suggestionServiceMock
                 .Setup(x => x.GetLongQuerySearchRecommendations(It.IsAny<ConversationContext>()))
-                .Returns(GetListOfDocuments());
+                .Returns(Task.FromResult<IEnumerable<Recommendation<Document>>>(GetListOfDocuments()));
 
             this._questionsServiceMock = new Mock<IQuestionsService>();
 

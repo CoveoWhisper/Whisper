@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using WhisperAPI.Models.MLAPI;
 using WhisperAPI.Models.Search;
@@ -29,9 +30,10 @@ namespace WhisperAPI.Services.Search
             this.InitHttpClient(searchBaseAddress);
         }
 
-        public ISearchResult Search(string query, IEnumerable<Facet> mustHaveFacets)
+        public async Task<ISearchResult> Search(string query, IEnumerable<Facet> mustHaveFacets)
         {
-            return JsonConvert.DeserializeObject<SearchResult>(this.GetStringFromPost(this._searchEndPoint, this.CreateStringContent(query, mustHaveFacets)));
+            var stringResult = await this.GetStringFromPost(this._searchEndPoint, this.CreateStringContent(query, mustHaveFacets));
+            return JsonConvert.DeserializeObject<SearchResult>(stringResult);
         }
 
         internal string GenerateAdvancedQuery(IEnumerable<Facet> facets)
@@ -39,12 +41,12 @@ namespace WhisperAPI.Services.Search
             return facets.Aggregate(string.Empty, (current, facet) => current + (" (@" + facet.Name + "==" + facet.Value + ")"));
         }
 
-        private string GetStringFromPost(string url, StringContent content)
+        private async Task<string> GetStringFromPost(string url, StringContent content)
         {
-            HttpResponseMessage response = this._httpClient.PostAsync(url, content).Result;
+            HttpResponseMessage response = await this._httpClient.PostAsync(url, content);
             response.EnsureSuccessStatusCode();
 
-            return response.Content.ReadAsStringAsync().Result;
+            return await response.Content.ReadAsStringAsync();
         }
 
         private StringContent CreateStringContent(string query, IEnumerable<Facet> mustHaveFacets)

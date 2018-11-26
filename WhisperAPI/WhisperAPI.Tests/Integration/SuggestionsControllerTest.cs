@@ -60,10 +60,10 @@ namespace WhisperAPI.Tests.Integration
 
             var recommenderSettings = new RecommenderSettings
             {
-                UseAnalyticsSearchReccomender = false,
+                UseAnalyticsSearchRecommender = false,
                 UseFacetQuestionRecommender = true,
                 UseLongQuerySearchRecommender = true,
-                UsePreprocessedQuerySearchReccomender = false
+                UsePreprocessedQuerySearchRecommender = false
             };
 
             var suggestionsService = new SuggestionsService(indexSearch, documentFacets, recommenderSettings);
