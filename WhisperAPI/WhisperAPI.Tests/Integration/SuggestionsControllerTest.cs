@@ -22,7 +22,6 @@ using WhisperAPI.Models.NLPAPI;
 using WhisperAPI.Models.Queries;
 using WhisperAPI.Services.Context;
 using WhisperAPI.Services.MLAPI.Facets;
-using WhisperAPI.Services.MLAPI.LastClickAnalytics;
 using WhisperAPI.Services.NLPAPI;
 using WhisperAPI.Services.Questions;
 using WhisperAPI.Services.Search;
@@ -40,31 +39,23 @@ namespace WhisperAPI.Tests.Integration
         private RecommenderSettings _recommenderSettings;
 
         private Mock<HttpMessageHandler> _indexSearchHttpMessageHandleMock;
-        private Mock<HttpMessageHandler> _lastClickAnalyticsHttpMessageHandleMock;
         private Mock<HttpMessageHandler> _nlpCallHttpMessageHandleMock;
         private Mock<HttpMessageHandler> _documentFacetsHttpMessageHandleMock;
-        private Mock<HttpMessageHandler> _filterDocumentsHttpMessageHandleMock;
 
         [SetUp]
         public void SetUp()
         {
             this._indexSearchHttpMessageHandleMock = new Mock<HttpMessageHandler>();
-            this._lastClickAnalyticsHttpMessageHandleMock = new Mock<HttpMessageHandler>();
             this._nlpCallHttpMessageHandleMock = new Mock<HttpMessageHandler>();
             this._documentFacetsHttpMessageHandleMock = new Mock<HttpMessageHandler>();
-            this._filterDocumentsHttpMessageHandleMock = new Mock<HttpMessageHandler>();
 
             var indexSearchHttpClient = new HttpClient(this._indexSearchHttpMessageHandleMock.Object);
-            var lastClickAnalyticsHttpClient = new HttpClient(this._lastClickAnalyticsHttpMessageHandleMock.Object);
             var nlpCallHttpClient = new HttpClient(this._nlpCallHttpMessageHandleMock.Object);
             var documentFacetHttpClient = new HttpClient(this._documentFacetsHttpMessageHandleMock.Object);
-            var filterDocumentsHttpClient = new HttpClient(this._filterDocumentsHttpMessageHandleMock.Object);
 
             var indexSearch = new IndexSearch(null, this._numberOfResults, indexSearchHttpClient, "https://localhost:5000");
-            var lastClickAnalytics = new LastClickAnalytics(lastClickAnalyticsHttpClient, "https://localhost:5000");
             var nlpCall = new NlpCall(nlpCallHttpClient, this.GetIrrelevantIntents(), "https://localhost:5000");
             var documentFacets = new DocumentFacets(documentFacetHttpClient, "https://localhost:5000");
-            var filterDocuments = new FilterDocuments(filterDocumentsHttpClient, "https://localhost:5000");
 
             this._recommenderSettings = new RecommenderSettings
             {
@@ -74,7 +65,7 @@ namespace WhisperAPI.Tests.Integration
                 UsePreprocessedQuerySearchRecommender = false
             };
 
-            var suggestionsService = new SuggestionsService(indexSearch, lastClickAnalytics, documentFacets, filterDocuments, 7, this._recommenderSettings);
+            var suggestionsService = new SuggestionsService(indexSearch, documentFacets, 7, this._recommenderSettings);
 
             var contexts = new InMemoryContexts(new TimeSpan(1, 0, 0, 0));
             var questionsService = new QuestionsService();

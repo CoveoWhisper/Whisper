@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using WhisperAPI.Models.MLAPI;
+using WhisperAPI.Models.Queries;
 
 namespace WhisperAPI.Models
 {

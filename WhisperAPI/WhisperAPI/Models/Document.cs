@@ -7,7 +7,6 @@ namespace WhisperAPI.Models
     {
         public Document()
         {
-            this.Id = Guid.NewGuid();
         }
 
         public Document(ISearchResultElement searchResultElement)
