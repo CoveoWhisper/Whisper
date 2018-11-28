@@ -197,8 +197,8 @@ namespace WhisperAPI.Tests.Unit
                     .GetProperty("ConversationContext", BindingFlags.NonPublic | BindingFlags.Instance)
                     .GetValue(this._suggestionController) as ConversationContext;
 
-            context.FilterDocumentsParameters.MustHaveFacets.Should().HaveCount(1);
-            context.FilterDocumentsParameters.MustHaveFacets.Single().Should().BeEquivalentTo(facet);
+            context.MustHaveFacets.Should().HaveCount(1);
+            context.MustHaveFacets.Single().Should().BeEquivalentTo(facet);
         }
 
         [Test]
@@ -230,7 +230,7 @@ namespace WhisperAPI.Tests.Unit
                     .GetProperty("ConversationContext", BindingFlags.NonPublic | BindingFlags.Instance)
                     .GetValue(this._suggestionController) as ConversationContext;
 
-            context.FilterDocumentsParameters.MustHaveFacets.Should().HaveCount(0);
+            context.MustHaveFacets.Should().HaveCount(0);
         }
 
         private ActionExecutingContext GetActionExecutingContext(Query query)

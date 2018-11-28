@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using WhisperAPI.Models;
 using WhisperAPI.Models.Queries;
@@ -98,14 +99,14 @@ namespace WhisperAPI.Controllers
         [HttpPut("Filter")]
         public IActionResult AddFilter([FromBody] FilterQuery query)
         {
-            this.ConversationContext.FilterDocumentsParameters.MustHaveFacets.Add(query.Facet);
+            this.ConversationContext.MustHaveFacets.Add(query.Facet);
             return this.NoContent();
         }
 
         [HttpDelete("Filter")]
         public IActionResult RemoveFilter([FromBody] FilterQuery query)
         {
-            this.ConversationContext.FilterDocumentsParameters.MustHaveFacets.Remove(query.Facet);
+            this.ConversationContext.MustHaveFacets.Remove(query.Facet);
             return this.NoContent();
         }
 

@@ -29,7 +29,6 @@ namespace WhisperAPI.Tests.Unit
         private Mock<ILastClickAnalytics> _lastClickAnalyticsMock;
         private Mock<INlpCall> _nlpCallMock;
         private Mock<IDocumentFacets> _documentFacetsMock;
-        private Mock<IFilterDocuments> _filterDocuments;
         private ConversationContext _conversationContext;
 
         [SetUp]
@@ -39,7 +38,6 @@ namespace WhisperAPI.Tests.Unit
             this._lastClickAnalyticsMock = new Mock<ILastClickAnalytics>();
             this._nlpCallMock = new Mock<INlpCall>();
             this._documentFacetsMock = new Mock<IDocumentFacets>();
-            this._filterDocuments = new Mock<IFilterDocuments>();
 
             var recommenderSettings = new RecommenderSettings
             {
@@ -48,8 +46,8 @@ namespace WhisperAPI.Tests.Unit
                 UseLongQuerySearchRecommender = true,
                 UsePreprocessedQuerySearchRecommender = true
             };
-
-            this._suggestionsService = new SuggestionsService(this._indexSearchMock.Object, this._lastClickAnalyticsMock.Object, this._documentFacetsMock.Object, this._filterDocuments.Object, 7, recommenderSettings);
+            
+            this._suggestionsService = new SuggestionsService(this._indexSearchMock.Object, this._lastClickAnalyticsMock.Object, this._documentFacetsMock.Object, 7, recommenderSettings);
             this._conversationContext = new ConversationContext(new Guid("a21d07d5-fd5a-42ab-ac2c-2ef6101e58d9"), DateTime.Now);
         }
 
@@ -240,6 +238,53 @@ namespace WhisperAPI.Tests.Unit
             this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
             this.SetUpLqIndexSearchMockToReturn(this.GetSearchResult());
             this.SetUpLastClickAnalyticsMockToReturn(this.GetLastClickAnalyticsResults());
+
+            var suggestionQuery = SearchQueryBuilder.Build
+                .WithMaxQuestions(maxQuestions)
+                .Instance;
+
+            this._suggestionsService.UpdateContextWithNewItem(this._conversationContext, nlpAnalysis, suggestionQuery, true);
+            var suggestion = this._suggestionsService.GetNewSuggestion(this._conversationContext, suggestionQuery);
+
+            suggestion.Questions.Should().HaveCount(this.GetSuggestedQuestions().Count);
+        }
+
+        [TestCase(1)]
+        [TestCase(2)]
+        [TestCase(3)]
+        public void When_having_more_documents_from_last_search_than_maximum_questions_return_that_maximum_of_documents(int maxQuestions)
+        {
+            this._conversationContext.Questions.Clear();
+
+            var nlpAnalysis = NlpAnalysisBuilder.Build.Instance;
+
+            this.SetUpNLPCallMockToReturn(nlpAnalysis, true);
+            this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
+            this.SetUpLqIndexSearchMockToReturn(this.GetSearchResult());
+            this.SetUpLastClickAnalyticsMockToReturn(this.GetLastClickAnalyticsResults());
+
+            var suggestionQuery = SearchQueryBuilder.Build
+                .WithMaxQuestions(maxQuestions)
+                .Instance;
+
+            this._suggestionsService.UpdateContextWithNewItem(this._conversationContext, nlpAnalysis, suggestionQuery, true);
+            var suggestion = this._suggestionsService.GetNewSuggestion(this._conversationContext, suggestionQuery);
+        }
+
+        [Test]
+        [TestCase(5)]
+        [TestCase(6)]
+        [TestCase(10)]
+        public void When_having_less_documents_from_last_search_than_maximum_questions_return_all_documents(int maxQuestions)
+        {
+            this._conversationContext.SelectedSuggestedDocuments.Clear();
+
+            var nlpAnalysis = NlpAnalysisBuilder.Build.Instance;
+
+            this.SetUpNLPCallMockToReturn(nlpAnalysis, true);
+            this.SetUpLastClickAnalyticsMockToReturn(this.GetLastClickAnalyticsResults());
+            this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
+            this.SetUpLqIndexSearchMockToReturn(this.GetSearchResult());
 
             var suggestionQuery = SearchQueryBuilder.Build
                 .WithMaxQuestions(maxQuestions)
@@ -526,14 +571,14 @@ namespace WhisperAPI.Tests.Unit
         private void SetUpLqIndexSearchMockToReturn(ISearchResult searchResult)
         {
             this._indexSearchMock
-                .Setup(x => x.LqSearch(It.IsAny<string>()))
+                .Setup(x => x.LqSearch(It.IsAny<string>(), It.IsAny<List<Facet>>()))
                 .Returns(Task.FromResult(searchResult));
         }
 
         private void SetUpQIndexSearchMockToReturn(ISearchResult searchResult)
         {
             this._indexSearchMock
-                .Setup(x => x.QSearch(It.IsAny<string>()))
+                .Setup(x => x.QSearch(It.IsAny<string>(), It.IsAny<List<Facet>>()))
                 .Returns(Task.FromResult(searchResult));
         }
     }

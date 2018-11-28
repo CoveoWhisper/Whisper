@@ -1,9 +1,15 @@
-﻿using System.Net.Http;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using WhisperAPI.Models.MLAPI;
 using WhisperAPI.Models.Search;
+
+[assembly: InternalsVisibleTo("WhisperAPI.Tests")]
 
 namespace WhisperAPI.Services.Search
 {
@@ -24,28 +30,35 @@ namespace WhisperAPI.Services.Search
             this.InitHttpClient(searchBaseAddress);
         }
 
-        public async Task<ISearchResult> QSearch(string query)
+        public async Task<ISearchResult> QSearch(string query, IEnumerable<Facet> mustHaveFacets)
         {
             var searchParameters = new QSearchParameters
             {
                 Q = query,
-                NumberOfResults = this._numberOfResults
+                NumberOfResults = this._numberOfResults,
+                AdvancedQuery = this.GenerateAdvancedQuery(mustHaveFacets)
             };
 
             var stringResult = await this.GetStringFromPost(this._searchEndPoint, this.CreateStringContent(searchParameters));
             return JsonConvert.DeserializeObject<SearchResult>(stringResult);
         }
 
-        public async Task<ISearchResult> LqSearch(string query)
+        public async Task<ISearchResult> LqSearch(string query, IEnumerable<Facet> mustHaveFacets)
         {
             var searchParameters = new LqSearchParameters
             {
                 Lq = query,
-                NumberOfResults = this._numberOfResults
+                NumberOfResults = this._numberOfResults,
+                AdvancedQuery = this.GenerateAdvancedQuery(mustHaveFacets)
             };
 
             var stringResult = await this.GetStringFromPost(this._searchEndPoint, this.CreateStringContent(searchParameters));
             return JsonConvert.DeserializeObject<SearchResult>(stringResult);
+        }
+
+        internal string GenerateAdvancedQuery(IEnumerable<Facet> facets)
+        {
+            return facets.Aggregate(string.Empty, (current, facet) => current + (" (@" + facet.Name + "==" + facet.Value + ")"));
         }
 
         private async Task<string> GetStringFromPost(string url, StringContent content)
