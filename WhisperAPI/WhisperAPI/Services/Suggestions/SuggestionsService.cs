@@ -9,6 +9,7 @@ using WhisperAPI.Models.NLPAPI;
 using WhisperAPI.Models.Queries;
 using WhisperAPI.Models.Search;
 using WhisperAPI.Services.MLAPI.Facets;
+using WhisperAPI.Services.MLAPI.LastClickAnalytics;
 using WhisperAPI.Services.Search;
 using WhisperAPI.Settings;
 
@@ -22,7 +23,11 @@ namespace WhisperAPI.Services.Suggestions
 
         private readonly IIndexSearch _indexSearch;
 
+        private readonly ILastClickAnalytics _lastClickAnalytics;
+
         private readonly IDocumentFacets _documentFacets;
+
+        private readonly IFilterDocuments _filterDocuments;
 
         private readonly RecommenderSettings _recommenderSettings;
 
@@ -30,12 +35,16 @@ namespace WhisperAPI.Services.Suggestions
 
         public SuggestionsService(
             IIndexSearch indexSearch,
+            ILastClickAnalytics lastClickAnalytics,
             IDocumentFacets documentFacets,
+            IFilterDocuments filterDocuments,
             int numberOfWordsIntoQ,
             RecommenderSettings recommenderSettings)
         {
             this._indexSearch = indexSearch;
+            this._lastClickAnalytics = lastClickAnalytics;
             this._documentFacets = documentFacets;
+            this._filterDocuments = filterDocuments;
             this._numberOfWordsIntoQ = numberOfWordsIntoQ;
             this._recommenderSettings = recommenderSettings;
         }
@@ -57,7 +66,7 @@ namespace WhisperAPI.Services.Suggestions
 
             if (this._recommenderSettings.UseAnalyticsSearchRecommender)
             {
-                // TODO
+                tasks.Add(this.GetLastClickAnalyticsRecommendations(conversationContext));
             }
 
             var allRecommendedDocuments = Task.WhenAll(tasks).Result.ToList();
@@ -162,6 +171,32 @@ namespace WhisperAPI.Services.Suggestions
             });
         }
 
+        internal async Task<IEnumerable<Recommendation<Document>>> GetLastClickAnalyticsRecommendations(ConversationContext context)
+        {
+            HashSet<string> contextEntities = this.GetContextEntities(context);
+            if (!contextEntities.Any())
+            {
+                return new List<Recommendation<Document>>();
+            }
+
+            List<LastClickAnalyticsResults> lastClickAnalyticsResults = await this._lastClickAnalytics.GetLastClickAnalyticsResults(contextEntities);
+            if (context.MustHaveFacets.Any())
+            {
+                List<string> filteredDocumentsUri = this.FilterDocumentsByFacet(lastClickAnalyticsResults.Select(x => x.Document), context.MustHaveFacets);
+                lastClickAnalyticsResults = lastClickAnalyticsResults.Where(x => filteredDocumentsUri.Contains(x.Document.Uri)).ToList();
+            }
+
+            return lastClickAnalyticsResults.Select(x => new Recommendation<Document>
+            {
+                Value = x.Document,
+                Confidence = x.Score,
+                RecommendedBy = new List<RecommenderType>
+                {
+                    RecommenderType.LastClickAnalytics
+                }
+            }).OrderByDescending(recommendation => recommendation.Confidence);
+        }
+
         internal string CreateQuery(ConversationContext conversationContext)
         {
             var words = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
@@ -195,6 +230,21 @@ namespace WhisperAPI.Services.Suggestions
             }
 
             return string.Join(" ", words);
+        }
+
+        internal HashSet<string> GetContextEntities(ConversationContext context)
+        {
+            List<ContextItem> contextItems = context.ContextItems.Skip(Math.Max(0, context.ContextItems.Count - 10)).ToList();
+            HashSet<string> contextEntities = new HashSet<string>();
+            foreach (ContextItem contextItem in contextItems)
+            {
+                if (contextItem.Relevant)
+                {
+                    contextEntities.UnionWith(contextItem.NlpAnalysis.ParsedQuery.Split(' '));
+                }
+            }
+
+            return contextEntities;
         }
 
         // We assume that every list of recommendations is already filtered by confidence descending
@@ -285,8 +335,6 @@ namespace WhisperAPI.Services.Suggestions
             return FilterOutChosenQuestions(conversationContext, questions);
         }
 
-        // Now unused, but kept in case we choose to use it again
-        /*
         private List<string> FilterDocumentsByFacet(IEnumerable<Document> documentsToFilter, List<Facet> mustHaveFacets)
         {
             var filterParameter = new FilterDocumentsParameters
@@ -296,7 +344,6 @@ namespace WhisperAPI.Services.Suggestions
             };
             return this._filterDocuments.FilterDocumentsByFacets(filterParameter);
         }
-        */
 
         private IEnumerable<Recommendation<Question>> GenerateQuestions(ConversationContext conversationContext, IEnumerable<Document> documents)
         {
