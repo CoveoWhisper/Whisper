@@ -9,6 +9,7 @@ using Swashbuckle.AspNetCore.Swagger;
 using WhisperAPI.Services.Context;
 using WhisperAPI.Services.Facets;
 using WhisperAPI.Services.MLAPI.Facets;
+using WhisperAPI.Services.MLAPI.LastClickAnalytics;
 using WhisperAPI.Services.NLPAPI;
 using WhisperAPI.Services.Questions;
 using WhisperAPI.Services.Search;
@@ -80,6 +81,7 @@ namespace WhisperAPI
             services.AddTransient<ISuggestionsService>(
                 x => new SuggestionsService(
                     x.GetService<IIndexSearch>(),
+                    x.GetService<ILastClickAnalytics>(),
                     x.GetService<IDocumentFacets>(),
                     x.GetService<IFilterDocuments>(),
                     applicationSettings.NumberOfWordsIntoQ,
@@ -99,6 +101,11 @@ namespace WhisperAPI
                     x.GetService<HttpClient>(),
                     applicationSettings.IrrelevantIntents,
                     applicationSettings.NlpApiBaseAddress));
+
+            services.AddTransient<ILastClickAnalytics>(
+                x => new LastClickAnalytics(
+                    x.GetService<HttpClient>(),
+                    applicationSettings.MlApiBaseAddress));
 
             services.AddTransient<IDocumentFacets>(
                 x => new DocumentFacets(
