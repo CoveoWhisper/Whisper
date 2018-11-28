@@ -27,6 +27,8 @@ namespace WhisperAPI.Services.Suggestions
 
         private readonly IDocumentFacets _documentFacets;
 
+        private readonly IFilterDocuments _filterDocuments;
+
         private readonly RecommenderSettings _recommenderSettings;
 
         private readonly int _numberOfWordsIntoQ;
@@ -35,12 +37,14 @@ namespace WhisperAPI.Services.Suggestions
             IIndexSearch indexSearch,
             ILastClickAnalytics lastClickAnalytics,
             IDocumentFacets documentFacets,
+            IFilterDocuments filterDocuments,
             int numberOfWordsIntoQ,
             RecommenderSettings recommenderSettings)
         {
             this._indexSearch = indexSearch;
             this._lastClickAnalytics = lastClickAnalytics;
             this._documentFacets = documentFacets;
+            this._filterDocuments = filterDocuments;
             this._numberOfWordsIntoQ = numberOfWordsIntoQ;
             this._recommenderSettings = recommenderSettings;
         }
@@ -176,10 +180,16 @@ namespace WhisperAPI.Services.Suggestions
             }
 
             List<LastClickAnalyticsResults> lastClickAnalyticsResults = await this._lastClickAnalytics.GetLastClickAnalyticsResults(contextEntities);
-            return lastClickAnalyticsResults.Select(lastClickAnalyticsResult => new Recommendation<Document>
+            if (context.MustHaveFacets.Any())
             {
-                Value = lastClickAnalyticsResult.Document,
-                Confidence = lastClickAnalyticsResult.Score,
+                List<string> filteredDocumentsUri = this.FilterDocumentsByFacet(lastClickAnalyticsResults.Select(x => x.Document), context.MustHaveFacets);
+                lastClickAnalyticsResults = lastClickAnalyticsResults.Where(x => filteredDocumentsUri.Contains(x.Document.Uri)).ToList();
+            }
+
+            return lastClickAnalyticsResults.Select(x => new Recommendation<Document>
+            {
+                Value = x.Document,
+                Confidence = x.Score,
                 RecommendedBy = new List<RecommenderType>
                 {
                     RecommenderType.LastClickAnalytics
@@ -325,8 +335,6 @@ namespace WhisperAPI.Services.Suggestions
             return FilterOutChosenQuestions(conversationContext, questions);
         }
 
-        // Now unused, but kept in case we choose to use it again
-        /*
         private List<string> FilterDocumentsByFacet(IEnumerable<Document> documentsToFilter, List<Facet> mustHaveFacets)
         {
             var filterParameter = new FilterDocumentsParameters
@@ -336,7 +344,6 @@ namespace WhisperAPI.Services.Suggestions
             };
             return this._filterDocuments.FilterDocumentsByFacets(filterParameter);
         }
-        */
 
         private IEnumerable<Recommendation<Question>> GenerateQuestions(ConversationContext conversationContext, IEnumerable<Document> documents)
         {
