@@ -24,8 +24,6 @@ namespace WhisperAPI.Services.Suggestions
 
         private readonly IDocumentFacets _documentFacets;
 
-        private readonly IFilterDocuments _filterDocuments;
-
         private readonly RecommenderSettings _recommenderSettings;
 
         private readonly int _numberOfWordsIntoQ;
@@ -33,13 +31,11 @@ namespace WhisperAPI.Services.Suggestions
         public SuggestionsService(
             IIndexSearch indexSearch,
             IDocumentFacets documentFacets,
-            IFilterDocuments filterDocuments,
             int numberOfWordsIntoQ,
             RecommenderSettings recommenderSettings)
         {
             this._indexSearch = indexSearch;
             this._documentFacets = documentFacets;
-            this._filterDocuments = filterDocuments;
             this._numberOfWordsIntoQ = numberOfWordsIntoQ;
             this._recommenderSettings = recommenderSettings;
         }
@@ -77,13 +73,6 @@ namespace WhisperAPI.Services.Suggestions
             var mergedQuestions = this.MergeRecommendedQuestions(allRecommendedQuestions).Take(query.MaxQuestions);
 
             var activeFacets = GetActiveFacets(conversationContext).ToList();
-            if (activeFacets.Any())
-            {
-                var documentUris = this.FilterDocumentsByFacet(mergedDocuments.Select(r => r.Value), conversationContext.FilterDocumentsParameters.MustHaveFacets);
-                var keptDocumentsUris = new HashSet<string>(documentUris);
-                mergedDocuments = mergedDocuments.Where(r => keptDocumentsUris.Contains(r.Value.Uri));
-            }
-
             var suggestion = new Suggestion
             {
                 ActiveFacets = activeFacets,
@@ -105,7 +94,7 @@ namespace WhisperAPI.Services.Suggestions
                 return new List<Recommendation<Document>>();
             }
 
-            var searchResult = await this._indexSearch.LqSearch(allRelevantQueries);
+            var searchResult = await this._indexSearch.LqSearch(allRelevantQueries, conversationContext.MustHaveFacets);
             var coveoIndexDocuments = this.CreateDocumentsFromCoveoSearch(searchResult, conversationContext.SuggestedDocuments.ToList());
             var documentsFiltered = this.FilterOutChosenSuggestions(coveoIndexDocuments, conversationContext.ContextItems);
 
@@ -158,7 +147,7 @@ namespace WhisperAPI.Services.Suggestions
                 return new List<Recommendation<Document>>();
             }
 
-            var searchResult = await this._indexSearch.QSearch(query);
+            var searchResult = await this._indexSearch.QSearch(query, conversationContext.MustHaveFacets);
             var coveoIndexDocuments = this.CreateDocumentsFromCoveoSearch(searchResult, conversationContext.SuggestedDocuments.ToList());
             var documentsFiltered = this.FilterOutChosenSuggestions(coveoIndexDocuments, conversationContext.ContextItems);
 
@@ -296,6 +285,8 @@ namespace WhisperAPI.Services.Suggestions
             return FilterOutChosenQuestions(conversationContext, questions);
         }
 
+        // Now unused, but kept in case we choose to use it again
+        /*
         private List<string> FilterDocumentsByFacet(IEnumerable<Document> documentsToFilter, List<Facet> mustHaveFacets)
         {
             var filterParameter = new FilterDocumentsParameters
@@ -305,6 +296,7 @@ namespace WhisperAPI.Services.Suggestions
             };
             return this._filterDocuments.FilterDocumentsByFacets(filterParameter);
         }
+        */
 
         private IEnumerable<Recommendation<Question>> GenerateQuestions(ConversationContext conversationContext, IEnumerable<Document> documents)
         {

@@ -34,14 +34,13 @@ namespace WhisperAPI.Tests.Integration
     [TestFixture]
     public class SuggestionsControllerTest
     {
+        private readonly int _numberOfResults = 1000;
         private SuggestionsController _suggestionController;
-        private int _numberOfResults = 1000;
         private RecommenderSettings _recommenderSettings;
 
         private Mock<HttpMessageHandler> _indexSearchHttpMessageHandleMock;
         private Mock<HttpMessageHandler> _nlpCallHttpMessageHandleMock;
         private Mock<HttpMessageHandler> _documentFacetsHttpMessageHandleMock;
-        private Mock<HttpMessageHandler> _filterDocumentsHttpMessageHandleMock;
 
         [SetUp]
         public void SetUp()
@@ -49,17 +48,14 @@ namespace WhisperAPI.Tests.Integration
             this._indexSearchHttpMessageHandleMock = new Mock<HttpMessageHandler>();
             this._nlpCallHttpMessageHandleMock = new Mock<HttpMessageHandler>();
             this._documentFacetsHttpMessageHandleMock = new Mock<HttpMessageHandler>();
-            this._filterDocumentsHttpMessageHandleMock = new Mock<HttpMessageHandler>();
 
             var indexSearchHttpClient = new HttpClient(this._indexSearchHttpMessageHandleMock.Object);
             var nlpCallHttpClient = new HttpClient(this._nlpCallHttpMessageHandleMock.Object);
             var documentFacetHttpClient = new HttpClient(this._documentFacetsHttpMessageHandleMock.Object);
-            var filterDocumentHttpClient = new HttpClient(this._filterDocumentsHttpMessageHandleMock.Object);
 
             var indexSearch = new IndexSearch(null, this._numberOfResults, indexSearchHttpClient, "https://localhost:5000");
             var nlpCall = new NlpCall(nlpCallHttpClient, this.GetIrrelevantIntents(), "https://localhost:5000");
             var documentFacets = new DocumentFacets(documentFacetHttpClient, "https://localhost:5000");
-            var filterDocuments = new FilterDocuments(filterDocumentHttpClient, "https://localhost:5000");
 
             this._recommenderSettings = new RecommenderSettings
             {
@@ -69,7 +65,7 @@ namespace WhisperAPI.Tests.Integration
                 UsePreprocessedQuerySearchRecommender = false
             };
 
-            var suggestionsService = new SuggestionsService(indexSearch, documentFacets, filterDocuments, 7, this._recommenderSettings);
+            var suggestionsService = new SuggestionsService(indexSearch, documentFacets, 7, this._recommenderSettings);
 
             var contexts = new InMemoryContexts(new TimeSpan(1, 0, 0, 0));
             var questionsService = new QuestionsService();
@@ -341,7 +337,6 @@ namespace WhisperAPI.Tests.Integration
             this.NlpCallHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(this.GetRelevantNlpAnalysis())));
             this.IndexSearchHttpMessageHandleMock(HttpStatusCode.OK, this.GetSearchResultStringContent());
             this.DocumentFacetsHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(questions)));
-            this.FilterDocumentHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(GetSuggestedDocuments().Select(x => x.Id))));
 
             this._suggestionController.OnActionExecuting(this.GetActionExecutingContext(searchQuery));
             var result = this._suggestionController.GetSuggestions(searchQuery);
@@ -378,8 +373,6 @@ namespace WhisperAPI.Tests.Integration
             result = this._suggestionController.GetSuggestions(searchQuery);
             suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
-            // The return list from facet is the same list than the complete list so it should filtered everything
-            suggestion.Documents.Select(d => d.Value).Should().BeEmpty();
             suggestion.ActiveFacets.Should().HaveCount(1);
             suggestion.ActiveFacets[0].Value = answerFromClient;
 
@@ -477,6 +470,8 @@ namespace WhisperAPI.Tests.Integration
                 }));
         }
 
+        // Now unused, but kept in case we choose to use it again
+        /*
         private void FilterDocumentHttpMessageHandleMock(HttpStatusCode statusCode, HttpContent content)
         {
             this._filterDocumentsHttpMessageHandleMock.Protected()
@@ -487,6 +482,7 @@ namespace WhisperAPI.Tests.Integration
                     Content = content
                 }));
         }
+        */
 
         private ActionExecutingContext GetActionExecutingContext(Query query)
         {

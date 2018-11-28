@@ -81,7 +81,6 @@ namespace WhisperAPI
                 x => new SuggestionsService(
                     x.GetService<IIndexSearch>(),
                     x.GetService<IDocumentFacets>(),
-                    x.GetService<IFilterDocuments>(),
                     applicationSettings.NumberOfWordsIntoQ,
                     recommenderSettings));
 
@@ -102,11 +101,6 @@ namespace WhisperAPI
 
             services.AddTransient<IDocumentFacets>(
                 x => new DocumentFacets(
-                    x.GetService<HttpClient>(),
-                    applicationSettings.MlApiBaseAddress));
-
-            services.AddTransient<IFilterDocuments>(
-                x => new FilterDocuments(
                     x.GetService<HttpClient>(),
                     applicationSettings.MlApiBaseAddress));
 
