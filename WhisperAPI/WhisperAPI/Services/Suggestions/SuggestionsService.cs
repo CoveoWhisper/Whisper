@@ -181,7 +181,7 @@ namespace WhisperAPI.Services.Suggestions
         internal async Task<IEnumerable<Recommendation<Document>>> GetLastClickAnalyticsRecommendations(ConversationContext context)
         {
             HashSet<string> contextEntities = this.GetContextEntities(context);
-            if (contextEntities.Count == 0)
+            if (!contextEntities.Any())
             {
                 return new List<Recommendation<Document>>();
             }
