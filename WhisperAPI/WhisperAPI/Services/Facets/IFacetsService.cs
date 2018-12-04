@@ -5,6 +5,6 @@ namespace WhisperAPI.Services.Facets
 {
     public interface IFacetsService
     {
-        List<FacetValues> GetFacetValues(IEnumerable<string> facetsName);
+        List<Facet> GetFacetValues(IEnumerable<string> facetsName);
     }
 }

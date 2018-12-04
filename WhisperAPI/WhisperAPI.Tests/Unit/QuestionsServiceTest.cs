@@ -102,7 +102,7 @@ namespace WhisperAPI.Tests.Unit
 
             var facet = FacetBuilder.Build
                 .WithId(questionToRejected.Id)
-                .WithValue(questionToRejected.Answer)
+                .AddValue(questionToRejected.Answer)
                 .WithName(questionToRejected.FacetName)
                 .Instance;
 

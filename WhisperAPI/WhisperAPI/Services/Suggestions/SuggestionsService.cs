@@ -81,10 +81,9 @@ namespace WhisperAPI.Services.Suggestions
 
             var mergedQuestions = this.MergeRecommendedQuestions(allRecommendedQuestions).Take(query.MaxQuestions);
 
-            var activeFacets = GetActiveFacets(conversationContext).ToList();
             var suggestion = new Suggestion
             {
-                ActiveFacets = activeFacets,
+                ActiveFacets = conversationContext.MustHaveFacets,
                 Documents = mergedDocuments.Take(query.MaxDocuments).ToList(),
                 Questions = mergedQuestions.Select(r => r.ConvertValue(QuestionToClient.FromQuestion)).ToList()
             };
@@ -298,16 +297,6 @@ namespace WhisperAPI.Services.Suggestions
                 .Select(x => x.Text);
 
             return questions.Where(x => !questionsText.Any(y => y.Contains(x.Text)));
-        }
-
-        private static IEnumerable<Facet> GetActiveFacets(ConversationContext conversationContext)
-        {
-            return conversationContext.AnsweredQuestions.OfType<FacetQuestion>().Select(a => new Facet
-            {
-                Id = a.Id,
-                Name = a.FacetName,
-                Value = a.Answer
-            }).ToList();
         }
 
         private static void UpdateContextWithNewSuggestions(ConversationContext context, IEnumerable<Document> documents)

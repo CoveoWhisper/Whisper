@@ -58,7 +58,34 @@ namespace WhisperAPI.Services.Search
 
         internal string GenerateAdvancedQuery(IEnumerable<Facet> facets)
         {
-            return facets.Aggregate(string.Empty, (current, facet) => current + (" (@" + facet.Name + "==" + facet.Value + ")"));
+            var result = string.Empty;
+            var facetIndex = 1;
+            foreach (var facet in facets)
+            {
+                result += "(";
+                var facetValueIndex = 0;
+                foreach (var facetValue in facet.Values)
+                {
+                    if (facetValueIndex != 0)
+                    {
+                        result += " OR ";
+                    }
+
+                    result += $"{facet.Name}=={facetValue}";
+                    facetValueIndex++;
+                }
+
+                result += ")";
+
+                if (facetIndex < facets.Count())
+                {
+                    result += " AND ";
+                }
+
+                facetIndex++;
+            }
+
+            return result;
         }
 
         private async Task<string> GetStringFromPost(string url, StringContent content)

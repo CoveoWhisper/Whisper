@@ -45,5 +45,32 @@ namespace WhisperAPI.Models
         public List<Question> LastSuggestedQuestions { get; set; }
 
         public List<Facet> MustHaveFacets { get; set; }
+
+        public void AddMustHaveFacets(Facet facet)
+        {
+            if (this.MustHaveFacets.Contains(facet))
+            {
+                foreach (var facetValue in facet.Values)
+                {
+                    var mustHaveFacet = this.MustHaveFacets.Single(f => f.Id == facet.Id);
+                    if (!mustHaveFacet.Values.Contains(facetValue))
+                    {
+                        mustHaveFacet.Values.Add(facetValue);
+                    }
+                }
+            }
+            else
+            {
+                this.MustHaveFacets.Add(facet);
+            }
+        }
+
+        public void RemoveFacetValue(Facet facet)
+        {
+            foreach (var facetValue in facet.Values)
+            {
+                this.MustHaveFacets.Single(f => f.Id == facet.Id).Values.Remove(facetValue);
+            }
+        }
     }
 }

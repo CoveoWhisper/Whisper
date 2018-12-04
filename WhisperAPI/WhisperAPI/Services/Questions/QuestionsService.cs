@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using WhisperAPI.Models;
 using WhisperAPI.Models.MLAPI;
@@ -82,12 +83,12 @@ namespace WhisperAPI.Services.Questions
             return new string(s.Where(c => char.IsLetterOrDigit(c)).ToArray());
         }
 
-        private static Facet BuildFaceFromFacetQuestion(FacetQuestion question)
+        private static Facet BuildFacetFromFacetQuestion(FacetQuestion question)
         {
             return new Facet
             {
                 Id = question.Id,
-                Value = question.Answer,
+                Values = new List<string> { question.Answer },
                 Name = question.FacetName
             };
         }
@@ -115,7 +116,7 @@ namespace WhisperAPI.Services.Questions
             {
                 case FacetQuestion facetQuestion:
                     this.UpdateQuestionWithAnswer(facetQuestion, messageText);
-                    context.MustHaveFacets.Add(BuildFaceFromFacetQuestion(facetQuestion));
+                    context.AddMustHaveFacets(BuildFacetFromFacetQuestion(facetQuestion));
                     return;
             }
 
