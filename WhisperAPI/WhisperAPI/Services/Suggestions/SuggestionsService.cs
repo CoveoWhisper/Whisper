@@ -51,25 +51,9 @@ namespace WhisperAPI.Services.Suggestions
 
         public Suggestion GetNewSuggestion(ConversationContext conversationContext, SuggestionQuery query)
         {
+            List<Task<IEnumerable<Recommendation<Document>>>> documentRecommendingTasks = this.GetDocumentRecommendingTasks(conversationContext);
             var allRecommendedQuestions = new List<IEnumerable<Recommendation<Question>>>();
-
-            var tasks = new List<Task<IEnumerable<Recommendation<Document>>>>();
-            if (this._recommenderSettings.UseLongQuerySearchRecommender)
-            {
-                tasks.Add(this.GetLongQuerySearchRecommendations(conversationContext));
-            }
-
-            if (this._recommenderSettings.UsePreprocessedQuerySearchRecommender)
-            {
-                tasks.Add(this.GetQuerySearchRecommendations(conversationContext));
-            }
-
-            if (this._recommenderSettings.UseAnalyticsSearchRecommender)
-            {
-                tasks.Add(this.GetLastClickAnalyticsRecommendations(conversationContext));
-            }
-
-            var allRecommendedDocuments = Task.WhenAll(tasks).Result.ToList();
+            var allRecommendedDocuments = Task.WhenAll(documentRecommendingTasks).Result.ToList();
 
             // TODO ensure documents are filtered, here, in the calls or afterwards
             var mergedDocuments = this.MergeRecommendedDocuments(allRecommendedDocuments);
@@ -92,6 +76,27 @@ namespace WhisperAPI.Services.Suggestions
             UpdateContextWithNewSuggestions(conversationContext, suggestion.Documents.Select(r => r.Value));
 
             return suggestion;
+        }
+
+        private List<Task<IEnumerable<Recommendation<Document>>>> GetDocumentRecommendingTasks(ConversationContext conversationContext)
+        {
+            var tasks = new List<Task<IEnumerable<Recommendation<Document>>>>();
+            if (this._recommenderSettings.UseLongQuerySearchRecommender)
+            {
+                tasks.Add(this.GetLongQuerySearchRecommendations(conversationContext));
+            }
+
+            if (this._recommenderSettings.UsePreprocessedQuerySearchRecommender)
+            {
+                tasks.Add(this.GetQuerySearchRecommendations(conversationContext));
+            }
+
+            if (this._recommenderSettings.UseAnalyticsSearchRecommender)
+            {
+                tasks.Add(this.GetLastClickAnalyticsRecommendations(conversationContext));
+            }
+
+            return tasks;
         }
 
         public async Task<IEnumerable<Recommendation<Document>>> GetLongQuerySearchRecommendations(ConversationContext conversationContext)
