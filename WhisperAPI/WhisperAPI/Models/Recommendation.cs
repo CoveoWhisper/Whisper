@@ -10,6 +10,7 @@ namespace WhisperAPI.Models
         LongQuerySearch,
         PreprocessedQuerySearch,
         LastClickAnalytics,
+        NearestDocuments,
         FacetQuestions
     }
 

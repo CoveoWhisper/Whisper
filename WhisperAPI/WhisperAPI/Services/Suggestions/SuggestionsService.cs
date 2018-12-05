@@ -10,6 +10,7 @@ using WhisperAPI.Models.Queries;
 using WhisperAPI.Models.Search;
 using WhisperAPI.Services.MLAPI.Facets;
 using WhisperAPI.Services.MLAPI.LastClickAnalytics;
+using WhisperAPI.Services.MLAPI.NearestDocuments;
 using WhisperAPI.Services.Search;
 using WhisperAPI.Settings;
 
@@ -27,25 +28,33 @@ namespace WhisperAPI.Services.Suggestions
 
         private readonly IDocumentFacets _documentFacets;
 
+        private readonly INearestDocuments _nearestDocuments;
+
         private readonly IFilterDocuments _filterDocuments;
 
         private readonly RecommenderSettings _recommenderSettings;
 
         private readonly int _numberOfWordsIntoQ;
 
+        private readonly double _minimumConfidence;
+
         public SuggestionsService(
             IIndexSearch indexSearch,
             ILastClickAnalytics lastClickAnalytics,
             IDocumentFacets documentFacets,
+            INearestDocuments nearestDocuments,
             IFilterDocuments filterDocuments,
             int numberOfWordsIntoQ,
+            double minimumConfidence,
             RecommenderSettings recommenderSettings)
         {
             this._indexSearch = indexSearch;
             this._lastClickAnalytics = lastClickAnalytics;
             this._documentFacets = documentFacets;
+            this._nearestDocuments = nearestDocuments;
             this._filterDocuments = filterDocuments;
             this._numberOfWordsIntoQ = numberOfWordsIntoQ;
+            this._minimumConfidence = minimumConfidence;
             this._recommenderSettings = recommenderSettings;
         }
 
@@ -67,6 +76,11 @@ namespace WhisperAPI.Services.Suggestions
             if (this._recommenderSettings.UseAnalyticsSearchRecommender)
             {
                 tasks.Add(this.GetLastClickAnalyticsRecommendations(conversationContext));
+            }
+
+            if (this._recommenderSettings.UseNearestDocumentsRecommender)
+            {
+                tasks.Add(this.GetNearestDocumentsRecommendations(conversationContext));
             }
 
             var allRecommendedDocuments = Task.WhenAll(tasks).Result.ToList();
@@ -179,7 +193,7 @@ namespace WhisperAPI.Services.Suggestions
                 return new List<Recommendation<Document>>();
             }
 
-            List<LastClickAnalyticsResults> lastClickAnalyticsResults = await this._lastClickAnalytics.GetLastClickAnalyticsResults(contextEntities);
+            List<LastClickAnalyticsResult> lastClickAnalyticsResults = await this._lastClickAnalytics.GetLastClickAnalyticsResults(contextEntities);
             if (context.MustHaveFacets.Any())
             {
                 List<string> filteredDocumentsUri = this.FilterDocumentsByFacet(lastClickAnalyticsResults.Select(x => x.Document), context.MustHaveFacets);
@@ -193,6 +207,33 @@ namespace WhisperAPI.Services.Suggestions
                 RecommendedBy = new List<RecommenderType>
                 {
                     RecommenderType.LastClickAnalytics
+                }
+            }).OrderByDescending(recommendation => recommendation.Confidence);
+        }
+
+        internal async Task<IEnumerable<Recommendation<Document>>> GetNearestDocumentsRecommendations(ConversationContext conversationContext)
+        {
+            var contextEntities = new HashSet<string>(string.Join(" ", conversationContext.ContextItems.Where(x => x.Relevant).Select(c => c.NlpAnalysis.ParsedQuery)).Split(" "));
+
+            if (!contextEntities.Any())
+            {
+                return new List<Recommendation<Document>>();
+            }
+
+            var results = await this._nearestDocuments.GetNearestDocumentsResults(contextEntities);
+            if (conversationContext.MustHaveFacets.Any())
+            {
+                var filteredDocumentsUri = this.FilterDocumentsByFacet(results.Select(x => x.Document), conversationContext.MustHaveFacets);
+                results = results.Where(x => filteredDocumentsUri.Contains(x.Document.Uri)).ToList();
+            }
+
+            return results.Select(x => new Recommendation<Document>
+            {
+                Value = x.Document,
+                Confidence = x.Score,
+                RecommendedBy = new List<RecommenderType>
+                {
+                    RecommenderType.NearestDocuments
                 }
             }).OrderByDescending(recommendation => recommendation.Confidence);
         }
@@ -253,7 +294,7 @@ namespace WhisperAPI.Services.Suggestions
             // The algorithm will take the max confidence for every document.
             // If a document appear multiple times, it has more chance to get higher (because it is a max with more arguments)
             // This algorithm can change
-            return allRecommendedDocuments.SelectMany(x => x)
+            return allRecommendedDocuments.SelectMany(x => x.Where(r => r.Confidence >= this._minimumConfidence))
                 .GroupBy(r => r.Value.Uri)
                 .Select(group => new Recommendation<Document>
                 {

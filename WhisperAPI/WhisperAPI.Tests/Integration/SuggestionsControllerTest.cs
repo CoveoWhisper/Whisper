@@ -23,6 +23,7 @@ using WhisperAPI.Models.Queries;
 using WhisperAPI.Services.Context;
 using WhisperAPI.Services.MLAPI.Facets;
 using WhisperAPI.Services.MLAPI.LastClickAnalytics;
+using WhisperAPI.Services.MLAPI.NearestDocuments;
 using WhisperAPI.Services.NLPAPI;
 using WhisperAPI.Services.Questions;
 using WhisperAPI.Services.Search;
@@ -41,6 +42,7 @@ namespace WhisperAPI.Tests.Integration
 
         private Mock<HttpMessageHandler> _indexSearchHttpMessageHandleMock;
         private Mock<HttpMessageHandler> _lastClickAnalyticsHttpMessageHandleMock;
+        private Mock<HttpMessageHandler> _nearestDocumentsHttpMessageHandleMock;
         private Mock<HttpMessageHandler> _nlpCallHttpMessageHandleMock;
         private Mock<HttpMessageHandler> _documentFacetsHttpMessageHandleMock;
         private Mock<HttpMessageHandler> _filterDocumentsHttpMessageHandleMock;
@@ -50,18 +52,21 @@ namespace WhisperAPI.Tests.Integration
         {
             this._indexSearchHttpMessageHandleMock = new Mock<HttpMessageHandler>();
             this._lastClickAnalyticsHttpMessageHandleMock = new Mock<HttpMessageHandler>();
+            this._nearestDocumentsHttpMessageHandleMock = new Mock<HttpMessageHandler>();
             this._nlpCallHttpMessageHandleMock = new Mock<HttpMessageHandler>();
             this._documentFacetsHttpMessageHandleMock = new Mock<HttpMessageHandler>();
             this._filterDocumentsHttpMessageHandleMock = new Mock<HttpMessageHandler>();
 
             var indexSearchHttpClient = new HttpClient(this._indexSearchHttpMessageHandleMock.Object);
             var lastClickAnalyticsHttpClient = new HttpClient(this._lastClickAnalyticsHttpMessageHandleMock.Object);
+            var nearestDocumentsHttpClient = new HttpClient(this._nearestDocumentsHttpMessageHandleMock.Object);
             var nlpCallHttpClient = new HttpClient(this._nlpCallHttpMessageHandleMock.Object);
             var documentFacetHttpClient = new HttpClient(this._documentFacetsHttpMessageHandleMock.Object);
             var filterDocumentsHttpClient = new HttpClient(this._filterDocumentsHttpMessageHandleMock.Object);
 
             var indexSearch = new IndexSearch(null, this._numberOfResults, indexSearchHttpClient, "https://localhost:5000");
             var lastClickAnalytics = new LastClickAnalytics(lastClickAnalyticsHttpClient, "https://localhost:5000");
+            var nearestDocuments = new NearestDocuments(nearestDocumentsHttpClient, "https://localhost:5000");
             var nlpCall = new NlpCall(nlpCallHttpClient, this.GetIrrelevantIntents(), "https://localhost:5000");
             var documentFacets = new DocumentFacets(documentFacetHttpClient, "https://localhost:5000");
             var filterDocuments = new FilterDocuments(filterDocumentsHttpClient, "https://localhost:5000");
@@ -71,10 +76,11 @@ namespace WhisperAPI.Tests.Integration
                 UseAnalyticsSearchRecommender = false,
                 UseFacetQuestionRecommender = true,
                 UseLongQuerySearchRecommender = true,
-                UsePreprocessedQuerySearchRecommender = false
+                UsePreprocessedQuerySearchRecommender = false,
+                UseNearestDocumentsRecommender = false
             };
 
-            var suggestionsService = new SuggestionsService(indexSearch, lastClickAnalytics, documentFacets, filterDocuments, 7, this._recommenderSettings);
+            var suggestionsService = new SuggestionsService(indexSearch, lastClickAnalytics, documentFacets, nearestDocuments, filterDocuments, 7, 0.5, this._recommenderSettings);
 
             var contexts = new InMemoryContexts(new TimeSpan(1, 0, 0, 0));
             var questionsService = new QuestionsService();
@@ -551,7 +557,7 @@ namespace WhisperAPI.Tests.Integration
 
         private StringContent GetSearchResultStringContent()
         {
-            return new StringContent("{\"totalCount\": 4,\"results\": [{\"title\": \"Available Coveo Cloud V2 Source Types\", \"excerpt\": \"This is the excerpt\", \"clickUri\": \"https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm\",\"printableUri\": \"https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm\",\"score\": 4280       },{\"title\": \"Coveo Cloud Query Syntax Reference\",\"excerpt\": \"This is the excerpt\", \"clickUri\": \"https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm\",\"printableUri\": \"https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm\",\"score\": 3900},{\"title\": \"Events\", \"excerpt\": \"This is the excerpt\", \"clickUri\": \"https://developers.coveo.com/display/JsSearchV1/Page/27230520/27230472/27230573\",\"printableUri\": \"https://developers.coveo.com/display/JsSearchV1/Page/27230520/27230472/27230573\",\"score\": 2947},{\"title\": \"Coveo Facet Component (CoveoFacet)\", \"excerpt\": \"This is the excerpt\", \"clickUri\": \"https://coveo.github.io/search-ui/components/facet.html\",\"printableUri\": \"https://coveo.github.io/search-ui/components/facet.html\",\"score\": 2932}]}");
+            return new StringContent("{\"totalCount\": 4,\"results\": [{\"title\": \"Available Coveo Cloud V2 Source Types\", \"excerpt\": \"This is the excerpt\", \"clickUri\": \"https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm\",\"printableUri\": \"https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm\",\"score\": 4280, \"percentScore\": 75},{\"title\": \"Coveo Cloud Query Syntax Reference\",\"excerpt\": \"This is the excerpt\", \"clickUri\": \"https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm\",\"printableUri\": \"https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm\",\"score\": 3900, \"percentScore\": 75},{\"title\": \"Events\", \"excerpt\": \"This is the excerpt\", \"clickUri\": \"https://developers.coveo.com/display/JsSearchV1/Page/27230520/27230472/27230573\",\"printableUri\": \"https://developers.coveo.com/display/JsSearchV1/Page/27230520/27230472/27230573\",\"score\": 2947, \"percentScore\": 75},{\"title\": \"Coveo Facet Component (CoveoFacet)\", \"excerpt\": \"This is the excerpt\", \"clickUri\": \"https://coveo.github.io/search-ui/components/facet.html\",\"printableUri\": \"https://coveo.github.io/search-ui/components/facet.html\",\"score\": 2932, \"percentScore\": 75}]}");
         }
 
         private List<string> GetIrrelevantIntents()

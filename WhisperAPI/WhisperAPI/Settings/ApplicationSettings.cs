@@ -18,6 +18,8 @@ namespace WhisperAPI.Settings
 
         public int NumberOfWordsIntoQ { get; set; }
 
+        public double MinimumConfidence { get; set; }
+
         public string ContextLifeSpan { get; set; }
     }
 }

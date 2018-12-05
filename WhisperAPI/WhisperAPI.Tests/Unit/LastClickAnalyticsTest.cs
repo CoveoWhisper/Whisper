@@ -34,7 +34,7 @@ namespace WhisperAPI.Tests.Unit
         [Test]
         public void When_receive_ok_response_from_post_then_returns_result_correctly()
         {
-            var lastClickAnalyticsResults = new List<LastClickAnalyticsResults>
+            var lastClickAnalyticsResults = new List<LastClickAnalyticsResult>
             {
                 LastClickAnalyticsResultsBuilder.Build.Instance
             };
@@ -78,10 +78,10 @@ namespace WhisperAPI.Tests.Unit
             this.HttpMessageHandlerMock(null, HttpStatusCode.OK);
 
             var result = this._lastClickAnalytics.GetLastClickAnalyticsResults(new HashSet<string>()).Result;
-            result.Should().BeEquivalentTo((List<LastClickAnalyticsResults>)null);
+            result.Should().BeEquivalentTo((List<LastClickAnalyticsResult>)null);
         }
 
-        private void HttpMessageHandlerMock(List<LastClickAnalyticsResults> lastClickAnalyticsResults, HttpStatusCode httpStatusCode)
+        private void HttpMessageHandlerMock(List<LastClickAnalyticsResult> lastClickAnalyticsResults, HttpStatusCode httpStatusCode)
         {
             this._httpMessageHandlerMock.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())

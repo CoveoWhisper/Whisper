@@ -12,6 +12,7 @@ using WhisperAPI.Models.Queries;
 using WhisperAPI.Models.Search;
 using WhisperAPI.Services.MLAPI.Facets;
 using WhisperAPI.Services.MLAPI.LastClickAnalytics;
+using WhisperAPI.Services.MLAPI.NearestDocuments;
 using WhisperAPI.Services.NLPAPI;
 using WhisperAPI.Services.Search;
 using WhisperAPI.Services.Suggestions;
@@ -27,6 +28,7 @@ namespace WhisperAPI.Tests.Unit
 
         private Mock<IIndexSearch> _indexSearchMock;
         private Mock<ILastClickAnalytics> _lastClickAnalyticsMock;
+        private Mock<INearestDocuments> _nearestDocuments;
         private Mock<INlpCall> _nlpCallMock;
         private Mock<IDocumentFacets> _documentFacetsMock;
         private Mock<IFilterDocuments> _filterDocumentsMock;
@@ -37,6 +39,7 @@ namespace WhisperAPI.Tests.Unit
         {
             this._indexSearchMock = new Mock<IIndexSearch>();
             this._lastClickAnalyticsMock = new Mock<ILastClickAnalytics>();
+            this._nearestDocuments = new Mock<INearestDocuments>();
             this._nlpCallMock = new Mock<INlpCall>();
             this._documentFacetsMock = new Mock<IDocumentFacets>();
             this._filterDocumentsMock = new Mock<IFilterDocuments>();
@@ -46,10 +49,11 @@ namespace WhisperAPI.Tests.Unit
                 UseAnalyticsSearchRecommender = true,
                 UseFacetQuestionRecommender = true,
                 UseLongQuerySearchRecommender = true,
-                UsePreprocessedQuerySearchRecommender = true
+                UsePreprocessedQuerySearchRecommender = true,
+                UseNearestDocumentsRecommender = true
             };
 
-            this._suggestionsService = new SuggestionsService(this._indexSearchMock.Object, this._lastClickAnalyticsMock.Object, this._documentFacetsMock.Object, this._filterDocumentsMock.Object, 7, recommenderSettings);
+            this._suggestionsService = new SuggestionsService(this._indexSearchMock.Object, this._lastClickAnalyticsMock.Object, this._documentFacetsMock.Object, this._nearestDocuments.Object, this._filterDocumentsMock.Object, 7, 0.5, recommenderSettings);
             this._conversationContext = new ConversationContext(new Guid("a21d07d5-fd5a-42ab-ac2c-2ef6101e58d9"), DateTime.Now);
         }
 
@@ -90,7 +94,7 @@ namespace WhisperAPI.Tests.Unit
         [Test]
         public void When_receiving_empty_last_click_analytics_results_then_return_empty_suggestions_list()
         {
-            this.SetUpLastClickAnalyticsMockToReturn(new List<LastClickAnalyticsResults>());
+            this.SetUpLastClickAnalyticsMockToReturn(new List<LastClickAnalyticsResult>());
             this._suggestionsService.GetLastClickAnalyticsRecommendations(this.GetConversationContext(true)).Result.Should().BeEquivalentTo(new List<Recommendation<Document>>());
         }
 
@@ -157,6 +161,7 @@ namespace WhisperAPI.Tests.Unit
             this._conversationContext.SelectedSuggestedDocuments.Clear();
             this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
             this.SetUpLqIndexSearchMockToReturn(this.GetSearchResult());
+            this.SetUpNearestDocumentsMockToReturn(this.GetNearestDocumentsResults());
             this.SetUpLastClickAnalyticsMockToReturn(this.GetLastClickAnalyticsResults());
             this.SetUpFilterDocumentsMockToReturn(this.GetLastClickAnalyticsResults().Select(x => x.Document.Uri).ToList());
 
@@ -182,6 +187,7 @@ namespace WhisperAPI.Tests.Unit
             this._conversationContext.SelectedSuggestedDocuments.Clear();
 
             this.SetUpLastClickAnalyticsMockToReturn(this.GetLastClickAnalyticsResults());
+            this.SetUpNearestDocumentsMockToReturn(this.GetNearestDocumentsResults());
             this.SetUpFilterDocumentsMockToReturn(this.GetLastClickAnalyticsResults().Select(x => x.Document.Uri).ToList());
             this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
             this.SetUpLqIndexSearchMockToReturn(this.GetSearchResult());
@@ -213,6 +219,7 @@ namespace WhisperAPI.Tests.Unit
             this._conversationContext.Questions.Clear();
             this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
             this.SetUpLqIndexSearchMockToReturn(this.GetSearchResult());
+            this.SetUpNearestDocumentsMockToReturn(this.GetNearestDocumentsResults());
             this.SetUpLastClickAnalyticsMockToReturn(this.GetLastClickAnalyticsResults());
             this.SetUpFilterDocumentsMockToReturn(this.GetLastClickAnalyticsResults().Select(x => x.Document.Uri).ToList());
 
@@ -244,6 +251,7 @@ namespace WhisperAPI.Tests.Unit
             this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
             this.SetUpLqIndexSearchMockToReturn(this.GetSearchResult());
             this.SetUpLastClickAnalyticsMockToReturn(this.GetLastClickAnalyticsResults());
+            this.SetUpNearestDocumentsMockToReturn(this.GetNearestDocumentsResults());
             this.SetUpFilterDocumentsMockToReturn(this.GetLastClickAnalyticsResults().Select(x => x.Document.Uri).ToList());
 
             var suggestionQuery = SearchQueryBuilder.Build
@@ -269,6 +277,7 @@ namespace WhisperAPI.Tests.Unit
             this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
             this.SetUpLqIndexSearchMockToReturn(this.GetSearchResult());
             this.SetUpLastClickAnalyticsMockToReturn(this.GetLastClickAnalyticsResults());
+            this.SetUpNearestDocumentsMockToReturn(this.GetNearestDocumentsResults());
             this.SetUpFilterDocumentsMockToReturn(this.GetLastClickAnalyticsResults().Select(x => x.Document.Uri).ToList());
 
             var suggestionQuery = SearchQueryBuilder.Build
@@ -291,6 +300,7 @@ namespace WhisperAPI.Tests.Unit
 
             this.SetUpNLPCallMockToReturn(nlpAnalysis, true);
             this.SetUpLastClickAnalyticsMockToReturn(this.GetLastClickAnalyticsResults());
+            this.SetUpNearestDocumentsMockToReturn(this.GetNearestDocumentsResults());
             this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
             this.SetUpLqIndexSearchMockToReturn(this.GetSearchResult());
             this.SetUpFilterDocumentsMockToReturn(this.GetLastClickAnalyticsResults().Select(x => x.Document.Uri).ToList());
@@ -513,11 +523,19 @@ namespace WhisperAPI.Tests.Unit
             return this.GetSuggestedDocuments(recommendedBy).Select(d => new Tuple<Document, double>(d.Value, d.Confidence));
         }
 
-        public List<LastClickAnalyticsResults> GetLastClickAnalyticsResults()
+        public List<LastClickAnalyticsResult> GetLastClickAnalyticsResults()
         {
-            return new List<LastClickAnalyticsResults>
+            return new List<LastClickAnalyticsResult>
             {
                 LastClickAnalyticsResultsBuilder.Build.Instance
+            };
+        }
+
+        public List<NearestDocumentsResult> GetNearestDocumentsResults()
+        {
+            return new List<NearestDocumentsResult>
+            {
+                NearestDocumentsResultBuilder.Build.Instance
             };
         }
 
@@ -556,11 +574,18 @@ namespace WhisperAPI.Tests.Unit
             return context;
         }
 
-        private void SetUpLastClickAnalyticsMockToReturn(List<LastClickAnalyticsResults> lastClickAnalyticsResults)
+        private void SetUpLastClickAnalyticsMockToReturn(List<LastClickAnalyticsResult> lastClickAnalyticsResults)
         {
             this._lastClickAnalyticsMock
                 .Setup(x => x.GetLastClickAnalyticsResults(It.IsAny<HashSet<string>>()))
                 .Returns(Task.FromResult(lastClickAnalyticsResults));
+        }
+
+        private void SetUpNearestDocumentsMockToReturn(List<NearestDocumentsResult> nearestDocumentsResults)
+        {
+            this._nearestDocuments
+                .Setup(x => x.GetNearestDocumentsResults(It.IsAny<HashSet<string>>()))
+                .Returns(Task.FromResult(nearestDocumentsResults));
         }
 
         private void SetUpDocumentFacetMockToReturn(List<FacetQuestion> facetQuestions)

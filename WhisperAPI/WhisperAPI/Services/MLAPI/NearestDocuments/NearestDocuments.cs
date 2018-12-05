@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using WhisperAPI.Models.MLAPI;
 
-namespace WhisperAPI.Services.MLAPI.LastClickAnalytics
+namespace WhisperAPI.Services.MLAPI.NearestDocuments
 {
-    public class LastClickAnalytics : ILastClickAnalytics
+    public class NearestDocuments : INearestDocuments
     {
         private static readonly log4net.ILog Log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -18,19 +18,19 @@ namespace WhisperAPI.Services.MLAPI.LastClickAnalytics
 
         private readonly HttpClient _httpClient;
 
-        public LastClickAnalytics(HttpClient httpClient, string baseAddress)
+        public NearestDocuments(HttpClient httpClient, string baseAddress)
         {
             this._httpClient = httpClient;
             this._baseAddress = baseAddress;
             this.InitHttpClient();
         }
 
-        public async Task<List<LastClickAnalyticsResult>> GetLastClickAnalyticsResults(HashSet<string> contextEntities)
+        public async Task<List<NearestDocumentsResult>> GetNearestDocumentsResults(HashSet<string> contextEntities)
         {
-            var response = await this._httpClient.PostAsync("ML/Analytics", CreateStringContent(contextEntities));
+            var response = await this._httpClient.PostAsync("ML/NearestDocuments", CreateStringContent(contextEntities));
             response.EnsureSuccessStatusCode();
 
-            return JsonConvert.DeserializeObject<List<LastClickAnalyticsResult>>(response.Content.ReadAsStringAsync().Result);
+            return JsonConvert.DeserializeObject<List<NearestDocumentsResult>>(response.Content.ReadAsStringAsync().Result);
         }
 
         private static StringContent CreateStringContent(IEnumerable<string> contextEntities)
