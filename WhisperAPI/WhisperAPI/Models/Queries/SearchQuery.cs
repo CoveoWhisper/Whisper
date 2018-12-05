@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
+using WhisperAPI.Settings;
 
 namespace WhisperAPI.Models.Queries
 {
@@ -21,5 +22,8 @@ namespace WhisperAPI.Models.Queries
         [Required(ErrorMessage = "Type is required")]
         [JsonProperty("type")]
         public MessageType? Type { get; set; }
+
+        [JsonProperty("overridenRecommenderSettings")]
+        public RecommenderSettings OverridenRecommenderSettings { get; set; }
     }
 }
