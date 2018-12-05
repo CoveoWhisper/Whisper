@@ -306,6 +306,38 @@ namespace WhisperAPI.Tests.Unit
         }
 
         [Test]
+        public void When_search_query_contains_overriden_recommender_settings_then_they_are_overriden()
+        {
+            this._conversationContext.SelectedSuggestedDocuments.Clear();
+
+            var nlpAnalysis = NlpAnalysisBuilder.Build.Instance;
+
+            this.SetUpNLPCallMockToReturn(nlpAnalysis, true);
+            this.SetUpLastClickAnalyticsMockToReturn(this.GetLastClickAnalyticsResults());
+            this.SetUpDocumentFacetMockToReturn(this.GetSuggestedQuestions());
+            this.SetUpLqIndexSearchMockToReturn(this.GetSearchResult());
+            this.SetUpFilterDocumentsMockToReturn(this.GetLastClickAnalyticsResults().Select(x => x.Document.Uri).ToList());
+
+            var overridenRecommenderSettings = new RecommenderSettings
+            {
+                UseAnalyticsSearchRecommender = true,
+                UseFacetQuestionRecommender = false,
+                UseLongQuerySearchRecommender = true,
+                UsePreprocessedQuerySearchRecommender = false
+            };
+
+            var suggestionQuery = SearchQueryBuilder.Build
+                .WithOverridenRecommenderSettings(overridenRecommenderSettings)
+                .Instance;
+
+            this._suggestionsService.UpdateContextWithNewItem(this._conversationContext, nlpAnalysis, suggestionQuery, true);
+            var suggestion = this._suggestionsService.GetNewSuggestion(this._conversationContext, suggestionQuery);
+
+            suggestion.Questions.Should().HaveCount(4);
+            suggestion.Documents.Should().HaveCount(5);
+        }
+
+        [Test]
         public void When_having_less_words_into_parsed_query_than_numberOfWordsIntoQ_then_return_all_words()
         {
             var context = new ConversationContext(new Guid("0f8fad5b-d9cb-469f-a165-708677289501"), DateTime.Now)

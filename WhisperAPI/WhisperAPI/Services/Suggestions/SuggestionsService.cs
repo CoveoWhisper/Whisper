@@ -51,8 +51,9 @@ namespace WhisperAPI.Services.Suggestions
 
         public Suggestion GetNewSuggestion(ConversationContext conversationContext, SuggestionQuery query)
         {
-            List<Task<IEnumerable<Recommendation<Document>>>> documentRecommendingTasks = this.GetDocumentRecommendingTasks(conversationContext);
             var allRecommendedQuestions = new List<IEnumerable<Recommendation<Question>>>();
+            RecommenderSettings recommenderSettings = query.OverridenRecommenderSettings ?? this._recommenderSettings;
+            List<Task<IEnumerable<Recommendation<Document>>>> documentRecommendingTasks = this.GetDocumentRecommendingTasks(conversationContext, recommenderSettings);
             var allRecommendedDocuments = Task.WhenAll(documentRecommendingTasks).Result.ToList();
 
             // TODO ensure documents are filtered, here, in the calls or afterwards
@@ -78,20 +79,21 @@ namespace WhisperAPI.Services.Suggestions
             return suggestion;
         }
 
-        private List<Task<IEnumerable<Recommendation<Document>>>> GetDocumentRecommendingTasks(ConversationContext conversationContext)
+        private List<Task<IEnumerable<Recommendation<Document>>>> GetDocumentRecommendingTasks(ConversationContext conversationContext, RecommenderSettings recommenderSettings)
         {
             var tasks = new List<Task<IEnumerable<Recommendation<Document>>>>();
-            if (this._recommenderSettings.UseLongQuerySearchRecommender)
+
+            if (recommenderSettings.UseLongQuerySearchRecommender)
             {
                 tasks.Add(this.GetLongQuerySearchRecommendations(conversationContext));
             }
 
-            if (this._recommenderSettings.UsePreprocessedQuerySearchRecommender)
+            if (recommenderSettings.UsePreprocessedQuerySearchRecommender)
             {
                 tasks.Add(this.GetQuerySearchRecommendations(conversationContext));
             }
 
-            if (this._recommenderSettings.UseAnalyticsSearchRecommender)
+            if (recommenderSettings.UseAnalyticsSearchRecommender)
             {
                 tasks.Add(this.GetLastClickAnalyticsRecommendations(conversationContext));
             }
