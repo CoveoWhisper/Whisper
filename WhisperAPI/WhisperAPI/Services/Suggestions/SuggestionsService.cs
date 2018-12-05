@@ -29,9 +29,9 @@ namespace WhisperAPI.Services.Suggestions
 
         private readonly IFilterDocuments _filterDocuments;
 
-        private readonly RecommenderSettings _recommenderSettings;
-
         private readonly int _numberOfWordsIntoQ;
+
+        private RecommenderSettings _recommenderSettings;
 
         public SuggestionsService(
             IIndexSearch indexSearch,
@@ -52,11 +52,30 @@ namespace WhisperAPI.Services.Suggestions
         public Suggestion GetNewSuggestion(ConversationContext conversationContext, SuggestionQuery query)
         {
             var allRecommendedQuestions = new List<IEnumerable<Recommendation<Question>>>();
-            RecommenderSettings recommenderSettings = query.OverridenRecommenderSettings ?? this._recommenderSettings;
-            List<Task<IEnumerable<Recommendation<Document>>>> documentRecommendingTasks = this.GetDocumentRecommendingTasks(conversationContext, recommenderSettings);
-            var allRecommendedDocuments = Task.WhenAll(documentRecommendingTasks).Result.ToList();
 
-            // TODO ensure documents are filtered, here, in the calls or afterwards
+            if (query.OverridenRecommenderSettings != null)
+            {
+                this._recommenderSettings = query.OverridenRecommenderSettings;
+            }
+
+            var tasks = new List<Task<IEnumerable<Recommendation<Document>>>>();
+
+            if (this._recommenderSettings.UseLongQuerySearchRecommender)
+            {
+                tasks.Add(this.GetLongQuerySearchRecommendations(conversationContext));
+            }
+
+            if (this._recommenderSettings.UsePreprocessedQuerySearchRecommender)
+            {
+                tasks.Add(this.GetQuerySearchRecommendations(conversationContext));
+            }
+
+            if (this._recommenderSettings.UseAnalyticsSearchRecommender)
+            {
+                tasks.Add(this.GetLastClickAnalyticsRecommendations(conversationContext));
+            }
+
+            var allRecommendedDocuments = Task.WhenAll(tasks).Result.ToList();
             var mergedDocuments = this.MergeRecommendedDocuments(allRecommendedDocuments);
 
             if (mergedDocuments.Any() && this._recommenderSettings.UseFacetQuestionRecommender)
@@ -77,28 +96,6 @@ namespace WhisperAPI.Services.Suggestions
             UpdateContextWithNewSuggestions(conversationContext, suggestion.Documents.Select(r => r.Value));
 
             return suggestion;
-        }
-
-        private List<Task<IEnumerable<Recommendation<Document>>>> GetDocumentRecommendingTasks(ConversationContext conversationContext, RecommenderSettings recommenderSettings)
-        {
-            var tasks = new List<Task<IEnumerable<Recommendation<Document>>>>();
-
-            if (recommenderSettings.UseLongQuerySearchRecommender)
-            {
-                tasks.Add(this.GetLongQuerySearchRecommendations(conversationContext));
-            }
-
-            if (recommenderSettings.UsePreprocessedQuerySearchRecommender)
-            {
-                tasks.Add(this.GetQuerySearchRecommendations(conversationContext));
-            }
-
-            if (recommenderSettings.UseAnalyticsSearchRecommender)
-            {
-                tasks.Add(this.GetLastClickAnalyticsRecommendations(conversationContext));
-            }
-
-            return tasks;
         }
 
         public async Task<IEnumerable<Recommendation<Document>>> GetLongQuerySearchRecommendations(ConversationContext conversationContext)

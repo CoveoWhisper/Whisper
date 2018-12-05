@@ -333,7 +333,7 @@ namespace WhisperAPI.Tests.Unit
             this._suggestionsService.UpdateContextWithNewItem(this._conversationContext, nlpAnalysis, suggestionQuery, true);
             var suggestion = this._suggestionsService.GetNewSuggestion(this._conversationContext, suggestionQuery);
 
-            suggestion.Questions.Should().HaveCount(4);
+            suggestion.Questions.Should().HaveCount(0);
             suggestion.Documents.Should().HaveCount(5);
         }
 
