@@ -1,5 +1,6 @@
 ﻿using System;
 using WhisperAPI.Models.Queries;
+using WhisperAPI.Settings;
 
 namespace WhisperAPI.Tests.Data.Builders
 {
@@ -15,6 +16,8 @@ namespace WhisperAPI.Tests.Data.Builders
 
         private int _maxQuestions;
 
+        private RecommenderSettings _overridenRecommenderSettings;
+
         public static SearchQueryBuilder Build => new SearchQueryBuilder();
 
         public SearchQuery Instance => new SearchQuery
@@ -23,7 +26,8 @@ namespace WhisperAPI.Tests.Data.Builders
             Query = this._query,
             Type = this._type,
             MaxDocuments = this._maxDocuments,
-            MaxQuestions = this._maxQuestions
+            MaxQuestions = this._maxQuestions,
+            OverridenRecommenderSettings = this._overridenRecommenderSettings
         };
 
         private SearchQueryBuilder()
@@ -62,6 +66,12 @@ namespace WhisperAPI.Tests.Data.Builders
         public SearchQueryBuilder WithMaxQuestions(int maxQuestions)
         {
             this._maxQuestions = maxQuestions;
+            return this;
+        }
+
+        public SearchQueryBuilder WithOverridenRecommenderSettings(RecommenderSettings overridenRecommenderSettings)
+        {
+            this._overridenRecommenderSettings = overridenRecommenderSettings;
             return this;
         }
     }
