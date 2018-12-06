@@ -32,11 +32,11 @@ namespace WhisperAPI.Services.Suggestions
 
         private readonly IFilterDocuments _filterDocuments;
 
-        private readonly RecommenderSettings _recommenderSettings;
-
         private readonly int _numberOfWordsIntoQ;
 
         private readonly double _minimumConfidence;
+
+        private RecommenderSettings _recommenderSettings;
 
         public SuggestionsService(
             IIndexSearch indexSearch,
@@ -62,7 +62,13 @@ namespace WhisperAPI.Services.Suggestions
         {
             var allRecommendedQuestions = new List<IEnumerable<Recommendation<Question>>>();
 
+            if (query.OverridenRecommenderSettings != null)
+            {
+                this._recommenderSettings = query.OverridenRecommenderSettings;
+            }
+
             var tasks = new List<Task<IEnumerable<Recommendation<Document>>>>();
+
             if (this._recommenderSettings.UseLongQuerySearchRecommender)
             {
                 tasks.Add(this.GetLongQuerySearchRecommendations(conversationContext));
@@ -84,8 +90,6 @@ namespace WhisperAPI.Services.Suggestions
             }
 
             var allRecommendedDocuments = Task.WhenAll(tasks).Result.ToList();
-
-            // TODO ensure documents are filtered, here, in the calls or afterwards
             var mergedDocuments = this.MergeRecommendedDocuments(allRecommendedDocuments);
 
             if (mergedDocuments.Any() && this._recommenderSettings.UseFacetQuestionRecommender)
