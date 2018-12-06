@@ -19,7 +19,7 @@ namespace WhisperAPI.Tests.Data.Builders
 
         private NearestDocumentsResultBuilder()
         {
-            this._document = new Document();
+            this._document = DocumentBuilder.Build.Instance;
             this._score = 0.75;
         }
 

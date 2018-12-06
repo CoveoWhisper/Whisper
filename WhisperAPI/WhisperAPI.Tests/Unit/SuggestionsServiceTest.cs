@@ -50,7 +50,7 @@ namespace WhisperAPI.Tests.Unit
                 UseFacetQuestionRecommender = true,
                 UseLongQuerySearchRecommender = true,
                 UsePreprocessedQuerySearchRecommender = true,
-                UseNearestDocumentsRecommender = true
+                UseNearestDocumentsRecommender = false
             };
 
             this._suggestionsService = new SuggestionsService(this._indexSearchMock.Object, this._lastClickAnalyticsMock.Object, this._documentFacetsMock.Object, this._nearestDocuments.Object, this._filterDocumentsMock.Object, 7, 0.5, recommenderSettings);
