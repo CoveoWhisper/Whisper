@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -62,20 +63,7 @@ namespace WhisperAPI.Services.Search
             var facetIndex = 1;
             foreach (var facet in facets)
             {
-                result += "(";
-                var facetValueIndex = 0;
-                foreach (var facetValue in facet.Values)
-                {
-                    if (facetValueIndex != 0)
-                    {
-                        result += " OR ";
-                    }
-
-                    result += $"{facet.Name}=={facetValue}";
-                    facetValueIndex++;
-                }
-
-                result += ")";
+                result += "(" + string.Join(" OR ", facet.Values.Select(facetValue => $"{facet.Name}=={facetValue}")) + ")";
 
                 if (facetIndex < facets.Count())
                 {

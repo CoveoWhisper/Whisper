@@ -50,9 +50,9 @@ namespace WhisperAPI.Models
         {
             if (this.MustHaveFacets.Contains(facet))
             {
+                var mustHaveFacet = this.MustHaveFacets.Single(f => f.Id == facet.Id);
                 foreach (var facetValue in facet.Values)
                 {
-                    var mustHaveFacet = this.MustHaveFacets.Single(f => f.Id == facet.Id);
                     if (!mustHaveFacet.Values.Contains(facetValue))
                     {
                         mustHaveFacet.Values.Add(facetValue);
