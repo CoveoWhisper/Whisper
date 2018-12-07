@@ -25,17 +25,17 @@ namespace WhisperAPI.Services.MLAPI.NearestDocuments
             this.InitHttpClient();
         }
 
-        public async Task<List<NearestDocumentsResult>> GetNearestDocumentsResults(HashSet<string> contextEntities)
+        public async Task<List<NearestDocumentsResult>> GetNearestDocumentsResults(NearestDocumentsParameters parameters)
         {
-            var response = await this._httpClient.PostAsync("ML/NearestDocuments", CreateStringContent(contextEntities));
+            var response = await this._httpClient.PostAsync("ML/NearestDocuments", CreateStringContent(parameters));
             response.EnsureSuccessStatusCode();
 
             return JsonConvert.DeserializeObject<List<NearestDocumentsResult>>(response.Content.ReadAsStringAsync().Result);
         }
 
-        private static StringContent CreateStringContent(IEnumerable<string> contextEntities)
+        private static StringContent CreateStringContent(NearestDocumentsParameters parameters)
         {
-            var json = JsonConvert.SerializeObject(contextEntities.ToList());
+            var json = JsonConvert.SerializeObject(parameters);
             return new StringContent(json, Encoding.UTF8, "application/json");
         }
 

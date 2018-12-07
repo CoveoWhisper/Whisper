@@ -44,13 +44,12 @@ namespace WhisperAPI.Tests.Unit
 
             this.HttpMessageHandlerMock(nearestDocumentsResults, HttpStatusCode.OK);
 
-            var entities = new HashSet<string>
-            {
-                "Entity1",
-                "Entity2"
-            };
+            var parameters = NearestDocumentsParametersBuilder.Build
+                .AddContextEntity("entity1")
+                .AddDocumentUri("uri1")
+                .Instance;
 
-            var result = this._nearestDocuments.GetNearestDocumentsResults(entities).Result;
+            var result = this._nearestDocuments.GetNearestDocumentsResults(parameters).Result;
 
             result.Should().BeEquivalentTo(nearestDocumentsResults);
         }
@@ -65,12 +64,11 @@ namespace WhisperAPI.Tests.Unit
 
             this.HttpMessageHandlerMock(null, status);
 
-            var entities = new HashSet<string>
-            {
-                "Entity1",
-                "Entity2"
-            };
-            Assert.Throws<AggregateException>(() => this._nearestDocuments.GetNearestDocumentsResults(entities).Wait());
+            var parameters = NearestDocumentsParametersBuilder.Build
+                .AddContextEntity("entity1")
+                .AddDocumentUri("uri1")
+                .Instance;
+            Assert.Throws<AggregateException>(() => this._nearestDocuments.GetNearestDocumentsResults(parameters).Wait());
         }
 
         [Test]
@@ -81,12 +79,11 @@ namespace WhisperAPI.Tests.Unit
 
             this.HttpMessageHandlerMock(null, HttpStatusCode.OK);
 
-            var entities = new HashSet<string>
-            {
-                "Entity1",
-                "Entity2"
-            };
-            var result = this._nearestDocuments.GetNearestDocumentsResults(entities).Result;
+            var parameters = NearestDocumentsParametersBuilder.Build
+                .AddContextEntity("entity1")
+                .AddDocumentUri("uri1")
+                .Instance;
+            var result = this._nearestDocuments.GetNearestDocumentsResults(parameters).Result;
             result.Should().BeEquivalentTo((HashSet<string>)null);
         }
 

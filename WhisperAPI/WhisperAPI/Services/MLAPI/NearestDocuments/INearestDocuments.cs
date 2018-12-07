@@ -6,6 +6,6 @@ namespace WhisperAPI.Services.MLAPI.NearestDocuments
 {
     public interface INearestDocuments
     {
-        Task<List<NearestDocumentsResult>> GetNearestDocumentsResults(HashSet<string> contextEntities);
+        Task<List<NearestDocumentsResult>> GetNearestDocumentsResults(NearestDocumentsParameters parameters);
     }
 }

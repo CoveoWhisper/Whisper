@@ -616,7 +616,7 @@ namespace WhisperAPI.Tests.Unit
         private void SetUpNearestDocumentsMockToReturn(List<NearestDocumentsResult> nearestDocumentsResults)
         {
             this._nearestDocuments
-                .Setup(x => x.GetNearestDocumentsResults(It.IsAny<HashSet<string>>()))
+                .Setup(x => x.GetNearestDocumentsResults(It.IsAny<NearestDocumentsParameters>()))
                 .Returns(Task.FromResult(nearestDocumentsResults));
         }
 

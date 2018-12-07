@@ -67,29 +67,33 @@ namespace WhisperAPI.Services.Suggestions
                 this._recommenderSettings = query.OverridenRecommenderSettings;
             }
 
-            var tasks = new List<Task<IEnumerable<Recommendation<Document>>>>();
+            var tasks = new Dictionary<RecommenderType, Task<IEnumerable<Recommendation<Document>>>>();
 
             if (this._recommenderSettings.UseLongQuerySearchRecommender)
             {
-                tasks.Add(this.GetLongQuerySearchRecommendations(conversationContext));
+                tasks.Add(RecommenderType.LongQuerySearch, this.GetLongQuerySearchRecommendations(conversationContext));
             }
 
             if (this._recommenderSettings.UsePreprocessedQuerySearchRecommender)
             {
-                tasks.Add(this.GetQuerySearchRecommendations(conversationContext));
+                tasks.Add(RecommenderType.PreprocessedQuerySearch, this.GetQuerySearchRecommendations(conversationContext));
             }
 
             if (this._recommenderSettings.UseAnalyticsSearchRecommender)
             {
-                tasks.Add(this.GetLastClickAnalyticsRecommendations(conversationContext));
+                tasks.Add(RecommenderType.LastClickAnalytics, this.GetLastClickAnalyticsRecommendations(conversationContext));
             }
 
             if (this._recommenderSettings.UseNearestDocumentsRecommender)
             {
-                tasks.Add(this.GetNearestDocumentsRecommendations(conversationContext));
+                var documentsUri = this._recommenderSettings.UsePreprocessedQuerySearchRecommender
+                    ? tasks[RecommenderType.PreprocessedQuerySearch].Result
+                    : this.GetQuerySearchRecommendations(conversationContext).Result;
+
+                tasks.Add(RecommenderType.NearestDocuments, this.GetNearestDocumentsRecommendations(conversationContext, documentsUri.Select(r => r.Value.Uri)));
             }
 
-            var allRecommendedDocuments = Task.WhenAll(tasks).Result.ToList();
+            var allRecommendedDocuments = Task.WhenAll(tasks.Values).Result.ToList();
             var mergedDocuments = this.MergeRecommendedDocuments(allRecommendedDocuments);
 
             if (mergedDocuments.Any() && this._recommenderSettings.UseFacetQuestionRecommender)
@@ -215,16 +219,22 @@ namespace WhisperAPI.Services.Suggestions
             }).OrderByDescending(recommendation => recommendation.Confidence);
         }
 
-        internal async Task<IEnumerable<Recommendation<Document>>> GetNearestDocumentsRecommendations(ConversationContext conversationContext)
+        internal async Task<IEnumerable<Recommendation<Document>>> GetNearestDocumentsRecommendations(ConversationContext conversationContext, IEnumerable<string> documentsUri)
         {
             var contextEntities = new HashSet<string>(string.Join(" ", conversationContext.ContextItems.Where(x => x.Relevant).Select(c => c.NlpAnalysis.ParsedQuery)).Split(" "));
 
-            if (!contextEntities.Any())
+            if (!contextEntities.Any() || !documentsUri.Any())
             {
                 return new List<Recommendation<Document>>();
             }
 
-            var results = await this._nearestDocuments.GetNearestDocumentsResults(contextEntities);
+            var parameters = new NearestDocumentsParameters
+            {
+                ContextEntities = contextEntities,
+                DocumentsUri = documentsUri
+            };
+
+            var results = await this._nearestDocuments.GetNearestDocumentsResults(parameters);
             if (conversationContext.MustHaveFacets.Any())
             {
                 var filteredDocumentsUri = this.FilterDocumentsByFacet(results.Select(x => x.Document), conversationContext.MustHaveFacets);
