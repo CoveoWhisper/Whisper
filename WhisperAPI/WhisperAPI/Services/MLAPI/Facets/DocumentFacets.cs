@@ -5,7 +5,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using Newtonsoft.Json;
-using WhisperAPI.Models;
+using WhisperAPI.Models.MLAPI;
 
 namespace WhisperAPI.Services.MLAPI.Facets
 {
@@ -24,12 +24,12 @@ namespace WhisperAPI.Services.MLAPI.Facets
             this.InitHttpClient();
         }
 
-        public List<FacetQuestion> GetQuestions(IEnumerable<string> documentsUri)
+        public List<FacetQuestionResult> GetQuestions(IEnumerable<string> documentsUri)
         {
             var response = this._httpClient.PostAsync("ML/Analyze", CreateStringContent(documentsUri)).Result;
             response.EnsureSuccessStatusCode();
 
-            return JsonConvert.DeserializeObject<List<FacetQuestion>>(response.Content.ReadAsStringAsync().Result);
+            return JsonConvert.DeserializeObject<List<FacetQuestionResult>>(response.Content.ReadAsStringAsync().Result);
         }
 
         private static StringContent CreateStringContent(IEnumerable<string> documentsUri)
