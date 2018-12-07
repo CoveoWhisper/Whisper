@@ -9,6 +9,7 @@ using Moq.Protected;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using WhisperAPI.Models;
+using WhisperAPI.Models.MLAPI;
 using WhisperAPI.Services.MLAPI.Facets;
 using WhisperAPI.Tests.Data.Builders;
 
@@ -33,9 +34,9 @@ namespace WhisperAPI.Tests.Unit
         [Test]
         public void When_receive_ok_response_from_post_then_returns_result_correctly()
         {
-            var questions = new List<Question>
+            var questions = new List<FacetQuestionResult>
             {
-                FacetQuestionBuilder.Build.Instance
+                FacetQuestionResultBuilder.Build.Instance
             };
 
             this._httpClient = new HttpClient(this._httpMessageHandlerMock.Object);
@@ -73,7 +74,7 @@ namespace WhisperAPI.Tests.Unit
             result.Should().BeEquivalentTo((List<Question>)null);
         }
 
-        private void HttpMessageHandlerMock(List<Question> questions, HttpStatusCode httpStatusCode)
+        private void HttpMessageHandlerMock(List<FacetQuestionResult> questions, HttpStatusCode httpStatusCode)
         {
             this._httpMessageHandlerMock.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())

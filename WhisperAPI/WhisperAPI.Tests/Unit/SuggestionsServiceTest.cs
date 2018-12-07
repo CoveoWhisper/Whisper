@@ -553,14 +553,14 @@ namespace WhisperAPI.Tests.Unit
             };
         }
 
-        public List<FacetQuestion> GetSuggestedQuestions()
+        public List<FacetQuestionResult> GetSuggestedQuestions()
         {
-            return new List<FacetQuestion>
+            return new List<FacetQuestionResult>
             {
-                FacetQuestionBuilder.Build.Instance,
-                FacetQuestionBuilder.Build.Instance,
-                FacetQuestionBuilder.Build.Instance,
-                FacetQuestionBuilder.Build.Instance
+                FacetQuestionResultBuilder.Build.Instance,
+                FacetQuestionResultBuilder.Build.Instance,
+                FacetQuestionResultBuilder.Build.Instance,
+                FacetQuestionResultBuilder.Build.Instance
             };
         }
 
@@ -595,7 +595,7 @@ namespace WhisperAPI.Tests.Unit
                 .Returns(Task.FromResult(lastClickAnalyticsResults));
         }
 
-        private void SetUpDocumentFacetMockToReturn(List<FacetQuestion> facetQuestions)
+        private void SetUpDocumentFacetMockToReturn(List<FacetQuestionResult> facetQuestions)
         {
             this._documentFacetsMock
                 .Setup(x => x.GetQuestions(It.IsAny<IEnumerable<string>>()))
