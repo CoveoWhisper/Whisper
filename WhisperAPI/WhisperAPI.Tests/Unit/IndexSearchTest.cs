@@ -104,16 +104,16 @@ namespace WhisperAPI.Tests.Unit
         public void When_active_facets_then_aq_is_parsed_in_correctly()
         {
             var facet = FacetBuilder.Build
-                .WithName("Bob").WithValue("Ross")
+                .WithName("Bob").AddValue("Ross").AddValue("Test")
                 .Instance;
             var facet2 = FacetBuilder.Build
-                .WithName("John").WithValue("Doe")
+                .WithName("John").AddValue("Doe")
                 .Instance;
             var mustHaveFacets = new List<Facet> { facet, facet2 };
 
             var result = ((IndexSearch)this._indexSearch).GenerateAdvancedQuery(mustHaveFacets);
 
-            result.Should().BeEquivalentTo(" (@Bob==Ross) (@John==Doe)");
+            result.Should().BeEquivalentTo("(Bob==Ross OR Bob==Test) AND (John==Doe)");
         }
 
         public SearchResult GetSearchResult()

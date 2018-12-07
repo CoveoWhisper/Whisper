@@ -33,9 +33,9 @@ namespace WhisperAPI.Tests.Unit
         [Test]
         public void When_receive_ok_response_from_post_then_returns_result_correctly()
         {
-            var values = new List<Models.MLAPI.FacetValues>
+            var values = new List<Models.MLAPI.Facet>
             {
-                FacetValuesBuilder.Build.Instance
+                FacetBuilder.Build.Instance
             };
 
             this._httpClient = new HttpClient(this._httpMessageHandlerMock.Object);
@@ -73,7 +73,7 @@ namespace WhisperAPI.Tests.Unit
             result.Should().BeEquivalentTo((List<FacetValues>)null);
         }
 
-        private void HttpMessageHandlerMock(List<Models.MLAPI.FacetValues> facetValues, HttpStatusCode httpStatusCode)
+        private void HttpMessageHandlerMock(List<Models.MLAPI.Facet> facetValues, HttpStatusCode httpStatusCode)
         {
             this._httpMessageHandlerMock.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())

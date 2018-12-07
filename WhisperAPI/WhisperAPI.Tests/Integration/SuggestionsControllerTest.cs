@@ -383,10 +383,10 @@ namespace WhisperAPI.Tests.Integration
             suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
             suggestion.ActiveFacets.Should().HaveCount(1);
-            suggestion.ActiveFacets[0].Value = answerFromClient;
+            suggestion.ActiveFacets[0].Values.Contains(answerFromClient).Should().BeTrue();
 
             // Agent clear the facet
-            result = this._suggestionController.RemoveFacet(suggestion.ActiveFacets[0].Id.Value, searchQuery);
+            result = this._suggestionController.RemoveFacet(suggestion.ActiveFacets[0].Id, searchQuery);
             result.Should().BeOfType<NoContentResult>();
 
             // Get the suggestion after clear

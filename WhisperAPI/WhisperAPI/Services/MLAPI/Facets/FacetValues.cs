@@ -23,12 +23,12 @@ namespace WhisperAPI.Services.MLAPI.Facets
             this.InitHttpClient();
         }
 
-        public List<Models.MLAPI.FacetValues> GetFacetValues(IEnumerable<string> facetsName)
+        public List<Models.MLAPI.Facet> GetFacetValues(IEnumerable<string> facetsName)
         {
             var response = this._httpClient.PostAsync("ML/Facets", CreateStringContent(facetsName)).Result;
             response.EnsureSuccessStatusCode();
 
-            return JsonConvert.DeserializeObject<List<Models.MLAPI.FacetValues>>(response.Content.ReadAsStringAsync().Result);
+            return JsonConvert.DeserializeObject<List<Models.MLAPI.Facet>>(response.Content.ReadAsStringAsync().Result);
         }
 
         private static StringContent CreateStringContent(IEnumerable<string> facetsName)

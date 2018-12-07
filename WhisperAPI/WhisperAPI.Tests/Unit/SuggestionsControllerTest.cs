@@ -178,7 +178,7 @@ namespace WhisperAPI.Tests.Unit
 
             var facet = FacetBuilder.Build
                 .WithName("Year")
-                .WithValue("2018")
+                .AddValue("2018")
                 .Instance;
 
             var query = FilterQueryBuilder.Build
@@ -209,7 +209,7 @@ namespace WhisperAPI.Tests.Unit
 
             var facet = FacetBuilder.Build
                 .WithName("Year")
-                .WithValue("2018")
+                .AddValue("2018")
                 .Instance;
 
             var query = FilterQueryBuilder.Build
@@ -223,14 +223,24 @@ namespace WhisperAPI.Tests.Unit
             this._suggestionController.OnActionExecuting(this.GetActionExecutingContext(query));
             this._suggestionController.AddFilter(query);
 
-            this._suggestionController.RemoveFilter(query);
+            var facet2 = FacetBuilder.Build
+                .WithId(facet.Id)
+                .WithName("Year")
+                .AddValue("2018")
+                .Instance;
+
+            var query2 = FilterQueryBuilder.Build
+                .WithFacet(facet2)
+                .Instance;
+
+            this._suggestionController.RemoveFilter(query2);
 
             var context =
                 this._suggestionController.GetType().BaseType
                     .GetProperty("ConversationContext", BindingFlags.NonPublic | BindingFlags.Instance)
                     .GetValue(this._suggestionController) as ConversationContext;
 
-            context.MustHaveFacets.Should().HaveCount(0);
+            context.MustHaveFacets.First().Values.Should().HaveCount(0);
         }
 
         private ActionExecutingContext GetActionExecutingContext(Query query)
