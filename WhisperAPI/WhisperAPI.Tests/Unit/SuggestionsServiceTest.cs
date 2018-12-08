@@ -425,7 +425,7 @@ namespace WhisperAPI.Tests.Unit
                         .Instance);
             }
 
-            int expectedCount = contextItemsCount > 10 ? Math.Min(contextItemsCount - irrelevantCount, 10) : contextItemsCount - irrelevantCount;
+            int expectedCount = contextItemsCount > 1 ? Math.Min(contextItemsCount - irrelevantCount, 1) : contextItemsCount - irrelevantCount;
             ConversationContext context = new ConversationContext() { ContextItems = contextItems };
             this._suggestionsService.GetContextEntities(context).Should().HaveCount(expectedCount);
         }
