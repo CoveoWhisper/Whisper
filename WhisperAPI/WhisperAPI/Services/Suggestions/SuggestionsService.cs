@@ -237,7 +237,7 @@ namespace WhisperAPI.Services.Suggestions
 
         internal HashSet<string> GetContextEntities(ConversationContext context)
         {
-            List<ContextItem> contextItems = context.ContextItems.Skip(Math.Max(0, context.ContextItems.Count - 10)).ToList();
+            List<ContextItem> contextItems = context.ContextItems.Skip(Math.Max(0, context.ContextItems.Count - 1)).ToList();
             HashSet<string> contextEntities = new HashSet<string>();
             foreach (ContextItem contextItem in contextItems)
             {
