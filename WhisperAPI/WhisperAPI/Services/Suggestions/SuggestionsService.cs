@@ -221,7 +221,8 @@ namespace WhisperAPI.Services.Suggestions
 
         internal async Task<IEnumerable<Recommendation<Document>>> GetNearestDocumentsRecommendations(ConversationContext conversationContext, IEnumerable<string> documentsUri)
         {
-            var contextEntities = new HashSet<string>(string.Join(" ", conversationContext.ContextItems.Where(x => x.Relevant).Select(c => c.NlpAnalysis.ParsedQuery)).Split(" "));
+            var allRelevantParsedQuery = conversationContext.ContextItems.Where(x => x.Relevant).Select(c => c.NlpAnalysis.ParsedQuery);
+            var contextEntities = new HashSet<string>(string.Join(" ", allRelevantParsedQuery).Split(" "));
 
             if (!contextEntities.Any() || !documentsUri.Any())
             {
