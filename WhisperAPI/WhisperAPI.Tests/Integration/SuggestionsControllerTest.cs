@@ -18,6 +18,7 @@ using Newtonsoft.Json;
 using NUnit.Framework;
 using WhisperAPI.Controllers;
 using WhisperAPI.Models;
+using WhisperAPI.Models.MLAPI;
 using WhisperAPI.Models.NLPAPI;
 using WhisperAPI.Models.Queries;
 using WhisperAPI.Services.Context;
@@ -129,6 +130,31 @@ namespace WhisperAPI.Tests.Integration
             suggestion.Questions.Select(q => q.Value).Should().BeEquivalentTo(questionsToClient);
 
             suggestion.Documents.All(x => x.RecommendedBy.Count == 2).Should().BeTrue();
+        }
+
+        [Test]
+        public void When_getting_suggestions_with_nearestDocument_then_returns_suggestions_correctly()
+        {
+            var questions = GetQuestions();
+            this._recommenderSettings.UseNearestDocumentsRecommender = true;
+
+            this.NlpCallHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(this.GetRelevantNlpAnalysis())));
+            this.IndexSearchHttpMessageHandleMock(HttpStatusCode.OK, this.GetSearchResultStringContent());
+            this.NearestDocumentsHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(GetNearestDocumentResult())));
+            this.DocumentFacetsHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(questions)));
+            var searchQuery = SearchQueryBuilder.Build.Instance;
+
+            this._suggestionController.OnActionExecuting(this.GetActionExecutingContext(searchQuery));
+            var result = this._suggestionController.GetSuggestions(searchQuery);
+
+            var suggestion = result.As<OkObjectResult>().Value as Suggestion;
+
+            var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q)).ToList();
+
+            suggestion.Documents.Select(d => d.Value).Count().Should().Be(6);
+            suggestion.Documents.Select(d => d.Value.Uri).Contains(GetNearestDocumentResult()[0].Document.Uri).Should().BeTrue();
+            suggestion.Documents.Select(d => d.Value.Uri).Contains(GetNearestDocumentResult()[1].Document.Uri).Should().BeTrue();
+            suggestion.Questions.Select(q => q.Value).Should().BeEquivalentTo(questionsToClient);
         }
 
         [Test]
@@ -452,9 +478,33 @@ namespace WhisperAPI.Tests.Integration
             };
         }
 
+        private static List<NearestDocumentsResult> GetNearestDocumentResult()
+        {
+            return new List<NearestDocumentsResult>
+            {
+                NearestDocumentsResultBuilder.Build
+                    .WithScore(0.98)
+                    .WithDocument(DocumentBuilder.Build.WithUri("https://www.google.ca").Instance).Instance,
+                NearestDocumentsResultBuilder.Build
+                    .WithScore(0.95)
+                    .WithDocument(DocumentBuilder.Build.WithUri("https://www.facebook.com").Instance).Instance
+            };
+        }
+
         private void IndexSearchHttpMessageHandleMock(HttpStatusCode statusCode, HttpContent content)
         {
             this._indexSearchHttpMessageHandleMock.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .Returns(Task.FromResult(new HttpResponseMessage
+                {
+                    StatusCode = statusCode,
+                    Content = content
+                }));
+        }
+
+        private void NearestDocumentsHttpMessageHandleMock(HttpStatusCode statusCode, HttpContent content)
+        {
+            this._nearestDocumentsHttpMessageHandleMock.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
                 .Returns(Task.FromResult(new HttpResponseMessage
                 {

@@ -315,7 +315,7 @@ namespace WhisperAPI.Services.Suggestions
                     Value = group.First().Value,
                     Confidence = group.Select(r => r.Confidence).Max(),
                     RecommendedBy = group.SelectMany(r => r.RecommendedBy).ToList()
-                });
+                }).OrderByDescending(x => x.Confidence);
         }
 
         internal IEnumerable<Recommendation<Question>> MergeRecommendedQuestions(List<IEnumerable<Recommendation<Question>>> allRecommendedQuestions)
