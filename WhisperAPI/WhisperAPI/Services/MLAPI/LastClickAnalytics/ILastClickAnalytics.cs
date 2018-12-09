@@ -6,6 +6,6 @@ namespace WhisperAPI.Services.MLAPI.LastClickAnalytics
 {
     public interface ILastClickAnalytics
     {
-        Task<List<LastClickAnalyticsResults>> GetLastClickAnalyticsResults(HashSet<string> contextEntities);
+        Task<List<LastClickAnalyticsResult>> GetLastClickAnalyticsResults(HashSet<string> contextEntities);
     }
 }

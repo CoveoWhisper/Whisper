@@ -10,6 +10,7 @@ using WhisperAPI.Services.Context;
 using WhisperAPI.Services.Facets;
 using WhisperAPI.Services.MLAPI.Facets;
 using WhisperAPI.Services.MLAPI.LastClickAnalytics;
+using WhisperAPI.Services.MLAPI.NearestDocuments;
 using WhisperAPI.Services.NLPAPI;
 using WhisperAPI.Services.Questions;
 using WhisperAPI.Services.Search;
@@ -83,8 +84,10 @@ namespace WhisperAPI
                     x.GetService<IIndexSearch>(),
                     x.GetService<ILastClickAnalytics>(),
                     x.GetService<IDocumentFacets>(),
+                    x.GetService<INearestDocuments>(),
                     x.GetService<IFilterDocuments>(),
                     applicationSettings.NumberOfWordsIntoQ,
+                    applicationSettings.MinimumConfidence,
                     recommenderSettings));
 
             services.AddTransient<IQuestionsService>(x => new QuestionsService());
@@ -104,6 +107,11 @@ namespace WhisperAPI
 
             services.AddTransient<ILastClickAnalytics>(
                 x => new LastClickAnalytics(
+                    x.GetService<HttpClient>(),
+                    applicationSettings.MlApiBaseAddress));
+
+            services.AddTransient<INearestDocuments>(
+                x => new NearestDocuments(
                     x.GetService<HttpClient>(),
                     applicationSettings.MlApiBaseAddress));
 

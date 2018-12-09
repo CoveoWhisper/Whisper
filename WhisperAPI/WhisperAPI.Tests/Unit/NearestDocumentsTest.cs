@@ -10,17 +10,17 @@ using Moq.Protected;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using WhisperAPI.Models.MLAPI;
-using WhisperAPI.Services.MLAPI.LastClickAnalytics;
+using WhisperAPI.Services.MLAPI.NearestDocuments;
 using WhisperAPI.Tests.Data.Builders;
 
 namespace WhisperAPI.Tests.Unit
 {
     [TestFixture]
-    public class LastClickAnalyticsTest
+    public class NearestDocumentsTest
     {
         private const string BaseAddress = "http://localhost:5000";
 
-        private ILastClickAnalytics _lastClickAnalytics;
+        private INearestDocuments _nearestDocuments;
 
         private Mock<HttpMessageHandler> _httpMessageHandlerMock;
         private HttpClient _httpClient;
@@ -34,19 +34,24 @@ namespace WhisperAPI.Tests.Unit
         [Test]
         public void When_receive_ok_response_from_post_then_returns_result_correctly()
         {
-            var lastClickAnalyticsResults = new List<LastClickAnalyticsResult>
+            var nearestDocumentsResults = new List<NearestDocumentsResult>
             {
-                LastClickAnalyticsResultsBuilder.Build.Instance
+                NearestDocumentsResultBuilder.Build.Instance
             };
 
             this._httpClient = new HttpClient(this._httpMessageHandlerMock.Object);
-            this._lastClickAnalytics = new LastClickAnalytics(this._httpClient, BaseAddress);
+            this._nearestDocuments = new NearestDocuments(this._httpClient, BaseAddress);
 
-            this.HttpMessageHandlerMock(lastClickAnalyticsResults, HttpStatusCode.OK);
+            this.HttpMessageHandlerMock(nearestDocumentsResults, HttpStatusCode.OK);
 
-            var result = this._lastClickAnalytics.GetLastClickAnalyticsResults(new HashSet<string>()).Result;
+            var parameters = NearestDocumentsParametersBuilder.Build
+                .AddContextEntity("entity1")
+                .AddDocumentUri("uri1")
+                .Instance;
 
-            result.Should().BeEquivalentTo(lastClickAnalyticsResults);
+            var result = this._nearestDocuments.GetNearestDocumentsResults(parameters).Result;
+
+            result.Should().BeEquivalentTo(nearestDocumentsResults);
         }
 
         [Test]
@@ -55,40 +60,41 @@ namespace WhisperAPI.Tests.Unit
         public void When_receive_not_ok_response_from_post_then_throws_exception(HttpStatusCode status)
         {
             this._httpClient = new HttpClient(this._httpMessageHandlerMock.Object);
-            this._lastClickAnalytics = new LastClickAnalytics(this._httpClient, BaseAddress);
+            this._nearestDocuments = new NearestDocuments(this._httpClient, BaseAddress);
 
             this.HttpMessageHandlerMock(null, status);
 
-            try
-            {
-                var result = this._lastClickAnalytics.GetLastClickAnalyticsResults(new HashSet<string>()).Result;
-                Assert.Fail();
-            }
-            catch (Exception)
-            {
-            }
+            var parameters = NearestDocumentsParametersBuilder.Build
+                .AddContextEntity("entity1")
+                .AddDocumentUri("uri1")
+                .Instance;
+            Assert.Throws<AggregateException>(() => this._nearestDocuments.GetNearestDocumentsResults(parameters).Wait());
         }
 
         [Test]
         public void When_receive_ok_response_with_empty_content_from_post_then_returns_null()
         {
             this._httpClient = new HttpClient(this._httpMessageHandlerMock.Object);
-            this._lastClickAnalytics = new LastClickAnalytics(this._httpClient, BaseAddress);
+            this._nearestDocuments = new NearestDocuments(this._httpClient, BaseAddress);
 
             this.HttpMessageHandlerMock(null, HttpStatusCode.OK);
 
-            var result = this._lastClickAnalytics.GetLastClickAnalyticsResults(new HashSet<string>()).Result;
-            result.Should().BeEquivalentTo((List<LastClickAnalyticsResult>)null);
+            var parameters = NearestDocumentsParametersBuilder.Build
+                .AddContextEntity("entity1")
+                .AddDocumentUri("uri1")
+                .Instance;
+            var result = this._nearestDocuments.GetNearestDocumentsResults(parameters).Result;
+            result.Should().BeEquivalentTo((HashSet<string>)null);
         }
 
-        private void HttpMessageHandlerMock(List<LastClickAnalyticsResult> lastClickAnalyticsResults, HttpStatusCode httpStatusCode)
+        private void HttpMessageHandlerMock(List<NearestDocumentsResult> nearestDocumentsResults, HttpStatusCode httpStatusCode)
         {
             this._httpMessageHandlerMock.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
                 .Returns(Task.FromResult(new HttpResponseMessage
                 {
                     StatusCode = httpStatusCode,
-                    Content = new StringContent(JsonConvert.SerializeObject(lastClickAnalyticsResults))
+                    Content = new StringContent(JsonConvert.SerializeObject(nearestDocumentsResults))
                 }));
         }
     }

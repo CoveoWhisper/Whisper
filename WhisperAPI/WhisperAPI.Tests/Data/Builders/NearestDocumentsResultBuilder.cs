@@ -3,33 +3,33 @@ using WhisperAPI.Models.MLAPI;
 
 namespace WhisperAPI.Tests.Data.Builders
 {
-    public class LastClickAnalyticsResultsBuilder
+    public class NearestDocumentsResultBuilder
     {
         private Document _document;
 
         private double _score;
 
-        public static LastClickAnalyticsResultsBuilder Build => new LastClickAnalyticsResultsBuilder();
+        public static NearestDocumentsResultBuilder Build => new NearestDocumentsResultBuilder();
 
-        public LastClickAnalyticsResult Instance => new LastClickAnalyticsResult
+        public NearestDocumentsResult Instance => new NearestDocumentsResult
         {
             Document = this._document,
             Score = this._score
         };
 
-        private LastClickAnalyticsResultsBuilder()
+        private NearestDocumentsResultBuilder()
         {
-            this._document = new Document();
+            this._document = DocumentBuilder.Build.Instance;
             this._score = 0.75;
         }
 
-        public LastClickAnalyticsResultsBuilder WithDocument(Document document)
+        public NearestDocumentsResultBuilder WithDocument(Document document)
         {
             this._document = document;
             return this;
         }
 
-        public LastClickAnalyticsResultsBuilder WithScore(double score)
+        public NearestDocumentsResultBuilder WithScore(double score)
         {
             this._score = score;
             return this;

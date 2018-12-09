@@ -9,5 +9,7 @@
         public bool UseAnalyticsSearchRecommender { get; set; }
 
         public bool UseFacetQuestionRecommender { get; set; }
+
+        public bool UseNearestDocumentsRecommender { get; set; }
     }
 }
