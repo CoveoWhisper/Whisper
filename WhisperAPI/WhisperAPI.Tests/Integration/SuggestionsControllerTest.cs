@@ -133,10 +133,13 @@ namespace WhisperAPI.Tests.Integration
         }
 
         [Test]
-        public void When_getting_suggestions_with_nearestDocument_then_returns_suggestions_correctly()
+        [TestCase(true)]
+        [TestCase(false)]
+        public void When_getting_suggestions_with_nearestDocument_then_returns_suggestions_correctly(bool usePreprocessedQuerySearchRecommender)
         {
             var questions = GetQuestions();
             this._recommenderSettings.UseNearestDocumentsRecommender = true;
+            this._recommenderSettings.UsePreprocessedQuerySearchRecommender = usePreprocessedQuerySearchRecommender;
 
             this.NlpCallHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(this.GetRelevantNlpAnalysis())));
             this.IndexSearchHttpMessageHandleMock(HttpStatusCode.OK, this.GetSearchResultStringContent());
