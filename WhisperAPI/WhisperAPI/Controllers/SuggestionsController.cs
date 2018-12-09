@@ -98,14 +98,14 @@ namespace WhisperAPI.Controllers
         [HttpPut("Filter")]
         public IActionResult AddFilter([FromBody] FilterQuery query)
         {
-            this.ConversationContext.MustHaveFacets.Add(query.Facet);
+            this.ConversationContext.AddMustHaveFacets(query.Facet);
             return this.NoContent();
         }
 
         [HttpDelete("Filter")]
         public IActionResult RemoveFilter([FromBody] FilterQuery query)
         {
-            this.ConversationContext.MustHaveFacets.Remove(query.Facet);
+            this.ConversationContext.RemoveFacetValue(query.Facet);
             return this.NoContent();
         }
 
@@ -113,7 +113,7 @@ namespace WhisperAPI.Controllers
         {
             suggestion.Documents?.ForEach(x => Log.Debug($"Title: {x.Value.Title}, Uri: {x.Value.Uri}, PrintableUri: {x.Value.PrintableUri}, Summary: {x.Value.Summary}"));
             suggestion.Questions?.ForEach(x => Log.Debug($"Id: {x.Value.Id}, Text: {x.Value.Text}"));
-            suggestion.ActiveFacets?.ForEach(x => Log.Debug($"Id: {x.Id}, Name: {x.Name}, Value: {x.Value}"));
+            suggestion.ActiveFacets?.ForEach(x => Log.Debug($"Id: {x.Id}, Name: {x.Name}, Values: {string.Join(" ", x.Values)}"));
         }
     }
 }

@@ -1,15 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
 using WhisperAPI.Models.MLAPI;
 
 namespace WhisperAPI.Tests.Data.Builders
 {
     public class FacetBuilder
     {
-        private Guid? _id;
+        private Guid _id;
 
         private string _name;
 
-        private string _value;
+        private List<string> _values;
 
         public static FacetBuilder Build => new FacetBuilder();
 
@@ -17,20 +18,14 @@ namespace WhisperAPI.Tests.Data.Builders
         {
             Id = this._id,
             Name = this._name,
-            Value = this._value
+            Values = this._values
         };
 
         private FacetBuilder()
         {
             this._id = Guid.NewGuid();
             this._name = "name";
-            this._value = "value";
-        }
-
-        public FacetBuilder WithId(Guid id)
-        {
-            this._id = id;
-            return this;
+            this._values = new List<string>();
         }
 
         public FacetBuilder WithName(string name)
@@ -39,9 +34,21 @@ namespace WhisperAPI.Tests.Data.Builders
             return this;
         }
 
-        public FacetBuilder WithValue(string value)
+        public FacetBuilder WithValues(List<string> values)
         {
-            this._value = value;
+            this._values = values;
+            return this;
+        }
+
+        public FacetBuilder WithId(Guid id)
+        {
+            this._id = id;
+            return this;
+        }
+
+        public FacetBuilder AddValue(string value)
+        {
+            this._values.Add(value);
             return this;
         }
     }

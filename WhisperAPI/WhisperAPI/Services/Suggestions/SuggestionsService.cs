@@ -103,10 +103,9 @@ namespace WhisperAPI.Services.Suggestions
 
             var mergedQuestions = this.MergeRecommendedQuestions(allRecommendedQuestions).Take(query.MaxQuestions);
 
-            var activeFacets = GetActiveFacets(conversationContext).ToList();
             var suggestion = new Suggestion
             {
-                ActiveFacets = activeFacets,
+                ActiveFacets = conversationContext.MustHaveFacets,
                 Documents = mergedDocuments.Take(query.MaxDocuments).ToList(),
                 Questions = mergedQuestions.Select(r => r.ConvertValue(QuestionToClient.FromQuestion)).ToList()
             };
@@ -290,7 +289,7 @@ namespace WhisperAPI.Services.Suggestions
 
         internal HashSet<string> GetContextEntities(ConversationContext context)
         {
-            List<ContextItem> contextItems = context.ContextItems.Skip(Math.Max(0, context.ContextItems.Count - 10)).ToList();
+            List<ContextItem> contextItems = context.ContextItems.Skip(Math.Max(0, context.ContextItems.Count - 1)).ToList();
             HashSet<string> contextEntities = new HashSet<string>();
             foreach (ContextItem contextItem in contextItems)
             {
@@ -345,25 +344,15 @@ namespace WhisperAPI.Services.Suggestions
             }
         }
 
-        private static IEnumerable<Question> FilterOutChosenQuestions(
+        private static IEnumerable<FacetQuestionResult> FilterOutChosenQuestions(
             ConversationContext conversationContext,
-            IEnumerable<Question> questions)
+            IEnumerable<FacetQuestionResult> questions)
         {
             var questionsText = conversationContext.
                 Questions.Where(question => question.Status != QuestionStatus.None && question.Status != QuestionStatus.Clicked)
                 .Select(x => x.Text);
 
-            return questions.Where(x => !questionsText.Any(y => y.Contains(x.Text)));
-        }
-
-        private static IEnumerable<Facet> GetActiveFacets(ConversationContext conversationContext)
-        {
-            return conversationContext.AnsweredQuestions.OfType<FacetQuestion>().Select(a => new Facet
-            {
-                Id = a.Id,
-                Name = a.FacetName,
-                Value = a.Answer
-            }).ToList();
+            return questions.Where(x => !questionsText.Any(y => y.Contains(x.FacetQuestion.Text)));
         }
 
         private static void UpdateContextWithNewSuggestions(ConversationContext context, IEnumerable<Document> documents)
@@ -384,11 +373,11 @@ namespace WhisperAPI.Services.Suggestions
             }
         }
 
-        private IEnumerable<Question> GetQuestionsFromDocument(ConversationContext conversationContext, IEnumerable<Document> documents)
+        private IEnumerable<FacetQuestionResult> GetQuestionsFromDocument(ConversationContext conversationContext, IEnumerable<Document> documents)
         {
-            var questions = this._documentFacets.GetQuestions(documents.Select(x => x.Uri));
-            AssociateKnownQuestionsWithId(conversationContext, questions.Cast<Question>().ToList());
-            return FilterOutChosenQuestions(conversationContext, questions);
+            var questionResults = this._documentFacets.GetQuestions(documents.Select(x => x.Uri));
+            AssociateKnownQuestionsWithId(conversationContext, questionResults.Select(q => q.FacetQuestion).Cast<Question>().ToList());
+            return FilterOutChosenQuestions(conversationContext, questionResults);
         }
 
         private List<string> FilterDocumentsByFacet(IEnumerable<Document> documentsToFilter, List<Facet> mustHaveFacets)
@@ -405,13 +394,13 @@ namespace WhisperAPI.Services.Suggestions
         {
             var questions = this.GetQuestionsFromDocument(conversationContext, documents).ToList();
 
-            UpdateContextWithNewQuestions(conversationContext, questions);
-            questions.ForEach(x => Log.Debug($"Id: {x.Id}, Text: {x.Text}"));
+            UpdateContextWithNewQuestions(conversationContext, questions.Select(q => q.FacetQuestion));
+            questions.ForEach(x => Log.Debug($"Id: {x.FacetQuestion.Id}, Text: {x.FacetQuestion.Text}"));
 
             return questions.Select(d => new Recommendation<Question>
             {
-                Value = d,
-                Confidence = 1,
+                Value = d.FacetQuestion,
+                Confidence = d.Score,
                 RecommendedBy = new List<RecommenderType>
                 {
                     RecommenderType.FacetQuestions

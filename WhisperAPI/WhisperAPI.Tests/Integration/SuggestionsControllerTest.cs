@@ -102,7 +102,7 @@ namespace WhisperAPI.Tests.Integration
 
             var suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
-            var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q)).ToList();
+            var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q.FacetQuestion)).ToList();
 
             suggestion.Documents.Select(d => d.Value).Should().BeEquivalentTo(GetSuggestedDocuments());
             suggestion.Questions.Select(q => q.Value).Should().BeEquivalentTo(questionsToClient);
@@ -124,7 +124,7 @@ namespace WhisperAPI.Tests.Integration
 
             var suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
-            var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q)).ToList();
+            var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q.FacetQuestion)).ToList();
 
             suggestion.Documents.Select(d => d.Value).Should().BeEquivalentTo(GetSuggestedDocuments());
             suggestion.Questions.Select(q => q.Value).Should().BeEquivalentTo(questionsToClient);
@@ -152,7 +152,7 @@ namespace WhisperAPI.Tests.Integration
 
             var suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
-            var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q)).ToList();
+            var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q.FacetQuestion)).ToList();
 
             suggestion.Documents.Select(d => d.Value).Count().Should().Be(6);
             suggestion.Documents.Select(d => d.Value.Uri).Contains(GetNearestDocumentResult()[0].Document.Uri).Should().BeTrue();
@@ -249,7 +249,7 @@ namespace WhisperAPI.Tests.Integration
 
             suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
-            var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q)).ToList();
+            var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q.FacetQuestion)).ToList();
 
             suggestion.Documents.Select(d => d.Value).Should().BeEquivalentTo(GetSuggestedDocuments());
             suggestion.Questions.Select(q => q.Value).Should().BeEquivalentTo(questionsToClient);
@@ -387,19 +387,19 @@ namespace WhisperAPI.Tests.Integration
 
             var suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
-            var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q)).ToList();
+            var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q.FacetQuestion)).ToList();
 
             suggestion.Documents.Select(d => d.Value).Should().BeEquivalentTo(GetSuggestedDocuments());
             suggestion.Questions.Select(q => q.Value).Should().BeEquivalentTo(questionsToClient);
 
             // Agent click on a question in the UI
-            var selectQuery = SelectQueryBuilder.Build.WithChatKey(searchQuery.ChatKey).WithId(questions[0].Id).Instance;
+            var selectQuery = SelectQueryBuilder.Build.WithChatKey(searchQuery.ChatKey).WithId(questions[0].FacetQuestion.Id).Instance;
             this._suggestionController.SelectSuggestion(selectQuery);
 
             // Agent asks the question he clicked to the custommer
             searchQuery = SearchQueryBuilder.Build
                 .WithMessageType(SearchQuery.MessageType.Agent)
-            .WithQuery(questions[0].Text)
+            .WithQuery(questions[0].FacetQuestion.Text)
             .Instance;
             result = this._suggestionController.GetSuggestions(searchQuery);
             suggestion = result.As<OkObjectResult>().Value as Suggestion;
@@ -411,17 +411,17 @@ namespace WhisperAPI.Tests.Integration
             questionsReceived.Single().Should().BeEquivalentTo(questionsToClient[1]);
 
             // Client respond to the answer
-            var answerFromClient = (questions[0] as FacetQuestion)?.FacetValues.FirstOrDefault();
+            var answerFromClient = (questions[0].FacetQuestion as FacetQuestion)?.FacetValues.FirstOrDefault();
             searchQuery.Type = SearchQuery.MessageType.Customer;
             searchQuery.Query = answerFromClient;
             result = this._suggestionController.GetSuggestions(searchQuery);
             suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
             suggestion.ActiveFacets.Should().HaveCount(1);
-            suggestion.ActiveFacets[0].Value = answerFromClient;
+            suggestion.ActiveFacets[0].Values.Contains(answerFromClient).Should().BeTrue();
 
             // Agent clear the facet
-            result = this._suggestionController.RemoveFacet(suggestion.ActiveFacets[0].Id.Value, searchQuery);
+            result = this._suggestionController.RemoveFacet(suggestion.ActiveFacets[0].Id, searchQuery);
             result.Should().BeOfType<NoContentResult>();
 
             // Get the suggestion after clear
@@ -472,12 +472,24 @@ namespace WhisperAPI.Tests.Integration
             };
         }
 
-        private static List<Question> GetQuestions()
+        private static List<FacetQuestionResult> GetQuestions()
         {
-            return new List<Question>
+            return new List<FacetQuestionResult>
             {
-                FacetQuestionBuilder.Build.WithFacetName("Dummy").WithFacetValues("A", "B", "C").Instance,
-                FacetQuestionBuilder.Build.WithFacetName("Dummy").WithFacetValues("C", "D", "E").Instance,
+                FacetQuestionResultBuilder.Build
+                    .WithFacetQuestion(
+                        FacetQuestionBuilder.Build
+                            .WithFacetName("Dummy")
+                            .WithFacetValues("A", "B", "C")
+                            .Instance)
+                    .Instance,
+                FacetQuestionResultBuilder.Build
+                    .WithFacetQuestion(
+                        FacetQuestionBuilder.Build
+                            .WithFacetName("Dummy")
+                            .WithFacetValues("C", "D", "E")
+                            .Instance)
+                    .Instance
             };
         }
 

@@ -435,7 +435,7 @@ namespace WhisperAPI.Tests.Unit
                         .Instance);
             }
 
-            int expectedCount = contextItemsCount > 10 ? Math.Min(contextItemsCount - irrelevantCount, 10) : contextItemsCount - irrelevantCount;
+            int expectedCount = contextItemsCount > 1 ? Math.Min(contextItemsCount - irrelevantCount, 1) : contextItemsCount - irrelevantCount;
             ConversationContext context = new ConversationContext() { ContextItems = contextItems };
             this._suggestionsService.GetContextEntities(context).Should().HaveCount(expectedCount);
         }
@@ -571,14 +571,14 @@ namespace WhisperAPI.Tests.Unit
             };
         }
 
-        public List<FacetQuestion> GetSuggestedQuestions()
+        public List<FacetQuestionResult> GetSuggestedQuestions()
         {
-            return new List<FacetQuestion>
+            return new List<FacetQuestionResult>
             {
-                FacetQuestionBuilder.Build.Instance,
-                FacetQuestionBuilder.Build.Instance,
-                FacetQuestionBuilder.Build.Instance,
-                FacetQuestionBuilder.Build.Instance
+                FacetQuestionResultBuilder.Build.Instance,
+                FacetQuestionResultBuilder.Build.Instance,
+                FacetQuestionResultBuilder.Build.Instance,
+                FacetQuestionResultBuilder.Build.Instance
             };
         }
 
@@ -620,7 +620,7 @@ namespace WhisperAPI.Tests.Unit
                 .Returns(Task.FromResult(nearestDocumentsResults));
         }
 
-        private void SetUpDocumentFacetMockToReturn(List<FacetQuestion> facetQuestions)
+        private void SetUpDocumentFacetMockToReturn(List<FacetQuestionResult> facetQuestions)
         {
             this._documentFacetsMock
                 .Setup(x => x.GetQuestions(It.IsAny<IEnumerable<string>>()))

@@ -4,6 +4,6 @@ namespace WhisperAPI.Services.MLAPI.Facets
 {
     public interface IFacetValues
     {
-        List<Models.MLAPI.FacetValues> GetFacetValues(IEnumerable<string> facetsName);
+        List<Models.MLAPI.Facet> GetFacetValues(IEnumerable<string> facetsName);
     }
 }
