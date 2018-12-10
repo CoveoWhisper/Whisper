@@ -230,7 +230,7 @@ namespace WhisperAPI.Services.Suggestions
 
             var parameters = new NearestDocumentsParameters
             {
-                ContextEntities = contextEntities,
+                ParsedQuery = string.Join(" ", contextEntities),
                 DocumentsUri = documentsUri
             };
 
