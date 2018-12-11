@@ -45,7 +45,7 @@ namespace WhisperAPI.Tests.Unit
             this.HttpMessageHandlerMock(nearestDocumentsResults, HttpStatusCode.OK);
 
             var parameters = NearestDocumentsParametersBuilder.Build
-                .AddContextEntity("entity1")
+                .WithParsedQuery("entity1")
                 .AddDocumentUri("uri1")
                 .Instance;
 
@@ -65,7 +65,7 @@ namespace WhisperAPI.Tests.Unit
             this.HttpMessageHandlerMock(null, status);
 
             var parameters = NearestDocumentsParametersBuilder.Build
-                .AddContextEntity("entity1")
+                .WithParsedQuery("entity1")
                 .AddDocumentUri("uri1")
                 .Instance;
             Assert.Throws<AggregateException>(() => this._nearestDocuments.GetNearestDocumentsResults(parameters).Wait());
@@ -80,7 +80,7 @@ namespace WhisperAPI.Tests.Unit
             this.HttpMessageHandlerMock(null, HttpStatusCode.OK);
 
             var parameters = NearestDocumentsParametersBuilder.Build
-                .AddContextEntity("entity1")
+                .WithParsedQuery("entity1")
                 .AddDocumentUri("uri1")
                 .Instance;
             var result = this._nearestDocuments.GetNearestDocumentsResults(parameters).Result;

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using WhisperAPI.Models.MLAPI;
 
 namespace WhisperAPI.Tests.Data.Builders
@@ -7,37 +8,31 @@ namespace WhisperAPI.Tests.Data.Builders
     {
         private List<string> _documentsUri;
 
-        private HashSet<string> _contextEntities;
+        private string _parsedQuery;
 
         public static NearestDocumentsParametersBuilder Build => new NearestDocumentsParametersBuilder();
 
         public NearestDocumentsParameters Instance => new NearestDocumentsParameters
         {
-            ContextEntities = this._contextEntities,
+            ParsedQuery = this._parsedQuery,
             DocumentsUri = this._documentsUri
         };
 
         private NearestDocumentsParametersBuilder()
         {
-            this._contextEntities = new HashSet<string>();
+            this._parsedQuery = string.Empty;
             this._documentsUri = new List<string>();
         }
 
-        public NearestDocumentsParametersBuilder WithContextEntities(HashSet<string> contextEntities)
+        public NearestDocumentsParametersBuilder WithParsedQuery(string parsedQuery)
         {
-            this._contextEntities = contextEntities;
+            this._parsedQuery = parsedQuery;
             return this;
         }
 
         public NearestDocumentsParametersBuilder WithDocumentsUri(List<string> documentsUri)
         {
             this._documentsUri = documentsUri;
-            return this;
-        }
-
-        public NearestDocumentsParametersBuilder AddContextEntity(string contextEntity)
-        {
-            this._contextEntities.Add(contextEntity);
             return this;
         }
 

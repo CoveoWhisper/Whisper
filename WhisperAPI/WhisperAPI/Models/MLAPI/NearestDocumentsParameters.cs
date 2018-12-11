@@ -4,7 +4,7 @@ namespace WhisperAPI.Models.MLAPI
 {
     public class NearestDocumentsParameters
     {
-        public HashSet<string> ContextEntities { get; set; }
+        public string ParsedQuery { get; set; }
 
         public IEnumerable<string> DocumentsUri { get; set; }
     }
