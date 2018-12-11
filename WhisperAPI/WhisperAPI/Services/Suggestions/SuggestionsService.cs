@@ -243,7 +243,7 @@ namespace WhisperAPI.Services.Suggestions
 
             return results.Select(x => new Recommendation<Document>
             {
-                Value = documents.Single(d => d.Uri.Equals(x.Document.Uri, StringComparison.InvariantCultureIgnoreCase)),
+                Value = documents.First(d => d.Uri.Equals(x.Document.Uri, StringComparison.InvariantCultureIgnoreCase)),
                 Confidence = x.Score,
                 RecommendedBy = new List<RecommenderType>
                 {
