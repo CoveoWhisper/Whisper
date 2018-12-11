@@ -154,7 +154,7 @@ namespace WhisperAPI.Tests.Integration
 
             var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q.FacetQuestion)).ToList();
 
-            suggestion.Documents.Select(d => d.Value).Count().Should().Be(6);
+            suggestion.Documents.Select(d => d.Value).Count().Should().Be(4);
             suggestion.Documents.Select(d => d.Value.Uri).Contains(GetNearestDocumentResult()[0].Document.Uri).Should().BeTrue();
             suggestion.Documents.Select(d => d.Value.Uri).Contains(GetNearestDocumentResult()[1].Document.Uri).Should().BeTrue();
             suggestion.Questions.Select(q => q.Value).Should().BeEquivalentTo(questionsToClient);
@@ -499,10 +499,10 @@ namespace WhisperAPI.Tests.Integration
             {
                 NearestDocumentsResultBuilder.Build
                     .WithScore(0.98)
-                    .WithDocument(DocumentBuilder.Build.WithUri("https://www.google.ca").Instance).Instance,
+                    .WithDocument(DocumentBuilder.Build.WithUri("https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm").Instance).Instance,
                 NearestDocumentsResultBuilder.Build
                     .WithScore(0.95)
-                    .WithDocument(DocumentBuilder.Build.WithUri("https://www.facebook.com").Instance).Instance
+                    .WithDocument(DocumentBuilder.Build.WithUri("https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm").Instance).Instance
             };
         }
 
