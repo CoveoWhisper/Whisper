@@ -51,3 +51,4 @@ The following repositories need to be downloaded:
 ### 5) Swagger documentation:
 <http://localhost:52256/swagger/index.html/>
 	
+é
