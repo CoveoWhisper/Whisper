@@ -86,11 +86,11 @@ namespace WhisperAPI.Services.Suggestions
 
             if (this._recommenderSettings.UseNearestDocumentsRecommender)
             {
-                var documentsUri = this._recommenderSettings.UsePreprocessedQuerySearchRecommender
+                var recommendations = this._recommenderSettings.UsePreprocessedQuerySearchRecommender
                     ? tasks[RecommenderType.PreprocessedQuerySearch].Result
                     : this.GetQuerySearchRecommendations(conversationContext).Result;
 
-                tasks.Add(RecommenderType.NearestDocuments, this.GetNearestDocumentsRecommendations(conversationContext, documentsUri.Select(r => r.Value.Uri)));
+                tasks.Add(RecommenderType.NearestDocuments, this.GetNearestDocumentsRecommendations(conversationContext, recommendations.Select(r => r.Value)));
             }
 
             var allRecommendedDocuments = Task.WhenAll(tasks.Values).Result.ToList();
@@ -218,12 +218,12 @@ namespace WhisperAPI.Services.Suggestions
             }).OrderByDescending(recommendation => recommendation.Confidence);
         }
 
-        internal async Task<IEnumerable<Recommendation<Document>>> GetNearestDocumentsRecommendations(ConversationContext conversationContext, IEnumerable<string> documentsUri)
+        internal async Task<IEnumerable<Recommendation<Document>>> GetNearestDocumentsRecommendations(ConversationContext conversationContext, IEnumerable<Document> documents)
         {
             var allRelevantParsedQuery = conversationContext.ContextItems.Where(x => x.Relevant).Select(c => c.NlpAnalysis.ParsedQuery);
             var contextEntities = new HashSet<string>(string.Join(" ", allRelevantParsedQuery).Split(" "));
 
-            if (!contextEntities.Any() || !documentsUri.Any())
+            if (!contextEntities.Any() || !documents.Any())
             {
                 return new List<Recommendation<Document>>();
             }
@@ -231,7 +231,7 @@ namespace WhisperAPI.Services.Suggestions
             var parameters = new NearestDocumentsParameters
             {
                 ParsedQuery = string.Join(" ", contextEntities),
-                DocumentsUri = documentsUri
+                DocumentsUri = documents.Select(d => d.Uri)
             };
 
             var results = await this._nearestDocuments.GetNearestDocumentsResults(parameters);
@@ -243,7 +243,7 @@ namespace WhisperAPI.Services.Suggestions
 
             return results.Select(x => new Recommendation<Document>
             {
-                Value = x.Document,
+                Value = documents.First(d => d.Uri.Equals(x.Document.Uri, StringComparison.InvariantCultureIgnoreCase)),
                 Confidence = x.Score,
                 RecommendedBy = new List<RecommenderType>
                 {
