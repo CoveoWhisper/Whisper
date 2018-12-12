@@ -67,7 +67,7 @@ namespace WhisperAPI.Services.NLPAPI
         {
             var mostConfidentIntent = nlpAnalysis.Intents.OrderByDescending(x => x.Confidence).First();
 
-            if (mostConfidentIntent.Confidence < 0.8)
+            if (mostConfidentIntent.Confidence < 0.5)
                 return true;
 
             return !this._irrelevantIntents.Any(x => Regex.IsMatch(mostConfidentIntent.Name, this.WildCardToRegularExpression(x)));
