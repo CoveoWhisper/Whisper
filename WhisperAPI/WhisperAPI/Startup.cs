@@ -103,7 +103,8 @@ namespace WhisperAPI
                 x => new NlpCall(
                     x.GetService<HttpClient>(),
                     applicationSettings.IrrelevantIntents,
-                    applicationSettings.NlpApiBaseAddress));
+                    applicationSettings.NlpApiBaseAddress,
+                    applicationSettings.MinimumRelevantConfidence));
 
             services.AddTransient<ILastClickAnalytics>(
                 x => new LastClickAnalytics(
