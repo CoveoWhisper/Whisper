@@ -16,6 +16,11 @@ namespace WhisperAPI.Controllers
             this._facetsService = facetsService;
         }
 
+        /// <summary>
+        /// Returns all facet values from a list of facet name.
+        /// </summary>
+        /// <param name="query">Query containing all the facet name</param>
+        /// <returns>A list of facets</returns>
         [HttpPost]
         public IActionResult GetFacetsValues([FromBody] FacetQuery query)
         {
