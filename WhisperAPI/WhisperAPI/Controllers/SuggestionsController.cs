@@ -28,6 +28,11 @@ namespace WhisperAPI.Controllers
             this._nlpService = nlpService;
         }
 
+        /// <summary>
+        /// Add the new query into context and returns relevant documents and questions
+        /// </summary>
+        /// <param name="searchQuery">Query contaning the new query send from agent of asker</param>
+        /// <returns></returns>
         [HttpPost]
         public IActionResult GetSuggestions([FromBody] SearchQuery searchQuery)
         {
@@ -49,6 +54,11 @@ namespace WhisperAPI.Controllers
             return this.Ok(suggestion);
         }
 
+        /// <summary>
+        /// This method returns the object containing all documents and questions without having a new query
+        /// </summary>
+        /// <param name="suggestionQuery">Query containing the chatkey of the context to get</param>
+        /// <returns>Suggestion of documents and questions</returns>
         [HttpGet]
         public IActionResult GetSuggestions(SuggestionQuery suggestionQuery)
         {
@@ -61,6 +71,11 @@ namespace WhisperAPI.Controllers
             return this.Ok(suggestion);
         }
 
+        /// <summary>
+        /// When an agent click on a suggestion in the UI, this method is call to update the status of it
+        /// </summary>
+        /// <param name="selectQuery">Query contaning the id of the suggestion</param>
+        /// <returns></returns>
         [HttpPost("Select")]
         public IActionResult SelectSuggestion([FromBody] SelectQuery selectQuery)
         {
@@ -74,6 +89,11 @@ namespace WhisperAPI.Controllers
             return this.Ok();
         }
 
+        /// <summary>
+        /// Remove all facet in the context
+        /// </summary>
+        /// <param name="query">Query containing the chatkey</param>
+        /// <returns></returns>
         [HttpDelete("Facets")]
         public IActionResult RemoveAllFacets([FromBody] Query query)
         {
@@ -83,6 +103,12 @@ namespace WhisperAPI.Controllers
             return this.NoContent();
         }
 
+        /// <summary>
+        /// Remove completely a facet and all her values
+        /// </summary>
+        /// <param name="id">id of the facet to remove</param>
+        /// <param name="query">Query containing the chatkey</param>
+        /// <returns></returns>
         [HttpDelete("Facets/{id}")]
         public IActionResult RemoveFacet([FromRoute] Guid id, [FromBody] Query query)
         {
@@ -95,6 +121,11 @@ namespace WhisperAPI.Controllers
             return this.NoContent();
         }
 
+        /// <summary>
+        /// Add a facet value for filtering documents
+        /// </summary>
+        /// <param name="query">Query containing the facet to add</param>
+        /// <returns></returns>
         [HttpPut("Filter")]
         public IActionResult AddFilter([FromBody] FilterQuery query)
         {
@@ -102,6 +133,11 @@ namespace WhisperAPI.Controllers
             return this.NoContent();
         }
 
+        /// <summary>
+        /// Remove a facet value for filtering documents
+        /// </summary>
+        /// <param name="query">Query containing the facet to remove</param>
+        /// <returns></returns>
         [HttpDelete("Filter")]
         public IActionResult RemoveFilter([FromBody] FilterQuery query)
         {
