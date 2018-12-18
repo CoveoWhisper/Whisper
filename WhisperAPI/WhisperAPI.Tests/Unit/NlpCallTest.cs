@@ -41,7 +41,7 @@ namespace WhisperAPI.Tests.Unit
             const string baseAddress = "http://localhost:5000";
 
             this._httpClient = new HttpClient(this._httpMessageHandlerMock.Object);
-            this._nlpCall = new NlpCall(this._httpClient, this.GetIrrelevantIntents(), baseAddress);
+            this._nlpCall = new NlpCall(this._httpClient, this.GetIrrelevantIntents(), baseAddress, 0.5);
 
             this._httpMessageHandlerMock.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -65,7 +65,7 @@ namespace WhisperAPI.Tests.Unit
             const string baseAddress = "http://localhost:5000";
 
             this._httpClient = new HttpClient(this._httpMessageHandlerMock.Object);
-            this._nlpCall = new NlpCall(this._httpClient, this.GetIrrelevantIntents(), baseAddress);
+            this._nlpCall = new NlpCall(this._httpClient, this.GetIrrelevantIntents(), baseAddress, 0.5);
 
             this._httpMessageHandlerMock.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -86,7 +86,7 @@ namespace WhisperAPI.Tests.Unit
             const string baseAddress = "http://localhost:5000";
 
             this._httpClient = new HttpClient(this._httpMessageHandlerMock.Object);
-            this._nlpCall = new NlpCall(this._httpClient, this.GetIrrelevantIntents(), baseAddress);
+            this._nlpCall = new NlpCall(this._httpClient, this.GetIrrelevantIntents(), baseAddress, 0.5);
 
             this._httpMessageHandlerMock.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -107,7 +107,7 @@ namespace WhisperAPI.Tests.Unit
             const string baseAddress = "http://localhost:5000";
 
             this._httpClient = new HttpClient(this._httpMessageHandlerMock.Object);
-            this._nlpCall = new NlpCall(this._httpClient, this.GetIrrelevantIntents(), baseAddress);
+            this._nlpCall = new NlpCall(this._httpClient, this.GetIrrelevantIntents(), baseAddress, 0.5);
 
             this._httpMessageHandlerMock.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -140,7 +140,7 @@ namespace WhisperAPI.Tests.Unit
             const string baseAddress = "http://localhost:5000";
 
             this._httpClient = new HttpClient(this._httpMessageHandlerMock.Object);
-            this._nlpCall = new NlpCall(this._httpClient, new List<string> { wildcardString }, baseAddress);
+            this._nlpCall = new NlpCall(this._httpClient, new List<string> { wildcardString }, baseAddress, 0.5);
 
             this._httpMessageHandlerMock.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -173,7 +173,7 @@ namespace WhisperAPI.Tests.Unit
             const string baseAddress = "http://localhost:5000";
 
             this._httpClient = new HttpClient(this._httpMessageHandlerMock.Object);
-            this._nlpCall = new NlpCall(this._httpClient, new List<string> { wildcardString }, baseAddress);
+            this._nlpCall = new NlpCall(this._httpClient, new List<string> { wildcardString }, baseAddress, 0.5);
 
             this._httpMessageHandlerMock.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())

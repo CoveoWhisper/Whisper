@@ -21,11 +21,14 @@ namespace WhisperAPI.Services.NLPAPI
 
         private readonly string _baseAddress;
 
-        public NlpCall(HttpClient httpClient, List<string> irrelevantIntents, string baseAddress)
+        private double _minimumRelevantConfidence;
+
+        public NlpCall(HttpClient httpClient, List<string> irrelevantIntents, string baseAddress, double minimumRelevantConfidence)
         {
             this._httpClient = httpClient;
             this._irrelevantIntents = irrelevantIntents;
             this._baseAddress = baseAddress;
+            this._minimumRelevantConfidence = minimumRelevantConfidence;
             this.InitHttpClient();
         }
 
@@ -67,8 +70,10 @@ namespace WhisperAPI.Services.NLPAPI
         {
             var mostConfidentIntent = nlpAnalysis.Intents.OrderByDescending(x => x.Confidence).First();
 
-            if (mostConfidentIntent.Confidence < 0.5)
+            if (mostConfidentIntent.Confidence < this._minimumRelevantConfidence)
+            {
                 return true;
+            }
 
             return !this._irrelevantIntents.Any(x => Regex.IsMatch(mostConfidentIntent.Name, this.WildCardToRegularExpression(x)));
         }

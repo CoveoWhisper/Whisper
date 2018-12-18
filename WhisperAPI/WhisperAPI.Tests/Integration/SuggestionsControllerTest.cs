@@ -68,7 +68,7 @@ namespace WhisperAPI.Tests.Integration
             var indexSearch = new IndexSearch(null, this._numberOfResults, indexSearchHttpClient, "https://localhost:5000");
             var lastClickAnalytics = new LastClickAnalytics(lastClickAnalyticsHttpClient, "https://localhost:5000");
             var nearestDocuments = new NearestDocuments(nearestDocumentsHttpClient, "https://localhost:5000");
-            var nlpCall = new NlpCall(nlpCallHttpClient, this.GetIrrelevantIntents(), "https://localhost:5000");
+            var nlpCall = new NlpCall(nlpCallHttpClient, this.GetIrrelevantIntents(), "https://localhost:5000", 0.5);
             var documentFacets = new DocumentFacets(documentFacetHttpClient, "https://localhost:5000");
             var filterDocuments = new FilterDocuments(filterDocumentsHttpClient, "https://localhost:5000");
 

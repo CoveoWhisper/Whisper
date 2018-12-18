@@ -20,6 +20,8 @@ namespace WhisperAPI.Settings
 
         public double MinimumConfidence { get; set; }
 
+        public double MinimumRelevantConfidence { get; set; }
+
         public string ContextLifeSpan { get; set; }
     }
 }
