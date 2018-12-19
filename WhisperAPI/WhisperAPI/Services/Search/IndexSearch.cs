@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -25,7 +24,7 @@ namespace WhisperAPI.Services.Search
 
         public IndexSearch(string apiKey, int numberOfResults, HttpClient client, string searchBaseAddress, string organizationID)
         {
-            if (organizationID != null && organizationID.Trim() != string.Empty)
+            if (!string.IsNullOrWhiteSpace(organizationID))
             {
                 this._searchEndPoint += $"?organizationId={organizationID}";
             }
