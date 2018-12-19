@@ -131,7 +131,9 @@ namespace WhisperAPI
                     applicationSettings.ApiKey,
                     applicationSettings.NumberOfResults,
                     x.GetService<HttpClient>(),
-                    applicationSettings.SearchBaseAddress));
+                    applicationSettings.SearchBaseAddress,
+                    applicationSettings.OrganizationID));
+
 
             services.AddTransient<HttpClient, HttpClient>();
 

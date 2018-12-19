@@ -23,5 +23,7 @@ namespace WhisperAPI.Settings
         public double MinimumRelevantConfidence { get; set; }
 
         public string ContextLifeSpan { get; set; }
+
+        public string OrganizationID { get; set; }
     }
 }

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -23,8 +22,13 @@ namespace WhisperAPI.Services.Search
         private readonly int _numberOfResults;
         private readonly HttpClient _httpClient;
 
-        public IndexSearch(string apiKey, int numberOfResults, HttpClient client, string searchBaseAddress)
+        public IndexSearch(string apiKey, int numberOfResults, HttpClient client, string searchBaseAddress, string organizationID)
         {
+            if (!string.IsNullOrWhiteSpace(organizationID))
+            {
+                this._searchEndPoint += $"?organizationId={organizationID}";
+            }
+
             this._apiKey = apiKey;
             this._numberOfResults = numberOfResults;
             this._httpClient = client;
