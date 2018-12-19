@@ -28,7 +28,7 @@ namespace WhisperAPI.Tests.Unit
             this._httpMessageHandler = new Mock<HttpMessageHandler>();
 
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
-            this._indexSearch = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000");
+            this._indexSearch = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000", null);
         }
 
         [Test]
@@ -44,7 +44,7 @@ namespace WhisperAPI.Tests.Unit
                 }));
 
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
-            IIndexSearch indexSearchOK = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000");
+            IIndexSearch indexSearchOK = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000", null);
             indexSearchOK.LqSearch(query, new List<Facet>()).Result.Should().BeEquivalentTo(this.GetSearchResult());
         }
 
@@ -61,7 +61,7 @@ namespace WhisperAPI.Tests.Unit
                 }));
 
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
-            IIndexSearch indexSearchOK = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000");
+            IIndexSearch indexSearchOK = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000", null);
             indexSearchOK.QSearch(query, new List<Facet>()).Result.Should().BeEquivalentTo(this.GetSearchResult());
         }
 
@@ -78,7 +78,7 @@ namespace WhisperAPI.Tests.Unit
                 }));
 
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
-            IIndexSearch indexSearchNotFound = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000");
+            IIndexSearch indexSearchNotFound = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000", null);
             Assert.Throws<AggregateException>(() => indexSearchNotFound.LqSearch(query, new List<Facet>()).Wait());
         }
 
@@ -95,7 +95,7 @@ namespace WhisperAPI.Tests.Unit
                 }));
 
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
-            IIndexSearch indexSearchOKNoContent = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000");
+            IIndexSearch indexSearchOKNoContent = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000", null);
 
             indexSearchOKNoContent.LqSearch(query, new List<Facet>()).Result.Should().BeEquivalentTo((SearchResult)null);
         }
