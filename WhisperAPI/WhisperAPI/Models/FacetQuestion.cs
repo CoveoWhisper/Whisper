@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace WhisperAPI.Models
 {
@@ -13,12 +10,6 @@ namespace WhisperAPI.Models
 
         public string Answer { get; set; }
 
-        public override string Text
-        {
-            get
-            {
-                return $"What {this.FacetName} is it? Is it {string.Join(", ", this.FacetValues)} ?";
-            }
-        }
+        public override string Text => $"What {this.FacetName} is it? Is it {string.Join(", ", this.FacetValues)} ?";
     }
 }

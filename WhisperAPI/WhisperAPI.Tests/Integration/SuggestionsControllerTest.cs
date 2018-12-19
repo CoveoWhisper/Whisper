@@ -18,14 +18,18 @@ using Newtonsoft.Json;
 using NUnit.Framework;
 using WhisperAPI.Controllers;
 using WhisperAPI.Models;
+using WhisperAPI.Models.MLAPI;
 using WhisperAPI.Models.NLPAPI;
 using WhisperAPI.Models.Queries;
 using WhisperAPI.Services.Context;
 using WhisperAPI.Services.MLAPI.Facets;
+using WhisperAPI.Services.MLAPI.LastClickAnalytics;
+using WhisperAPI.Services.MLAPI.NearestDocuments;
 using WhisperAPI.Services.NLPAPI;
 using WhisperAPI.Services.Questions;
 using WhisperAPI.Services.Search;
 using WhisperAPI.Services.Suggestions;
+using WhisperAPI.Settings;
 using WhisperAPI.Tests.Data.Builders;
 
 namespace WhisperAPI.Tests.Integration
@@ -33,9 +37,13 @@ namespace WhisperAPI.Tests.Integration
     [TestFixture]
     public class SuggestionsControllerTest
     {
+        private readonly int _numberOfResults = 1000;
         private SuggestionsController _suggestionController;
+        private RecommenderSettings _recommenderSettings;
 
         private Mock<HttpMessageHandler> _indexSearchHttpMessageHandleMock;
+        private Mock<HttpMessageHandler> _lastClickAnalyticsHttpMessageHandleMock;
+        private Mock<HttpMessageHandler> _nearestDocumentsHttpMessageHandleMock;
         private Mock<HttpMessageHandler> _nlpCallHttpMessageHandleMock;
         private Mock<HttpMessageHandler> _documentFacetsHttpMessageHandleMock;
         private Mock<HttpMessageHandler> _filterDocumentsHttpMessageHandleMock;
@@ -44,25 +52,40 @@ namespace WhisperAPI.Tests.Integration
         public void SetUp()
         {
             this._indexSearchHttpMessageHandleMock = new Mock<HttpMessageHandler>();
+            this._lastClickAnalyticsHttpMessageHandleMock = new Mock<HttpMessageHandler>();
+            this._nearestDocumentsHttpMessageHandleMock = new Mock<HttpMessageHandler>();
             this._nlpCallHttpMessageHandleMock = new Mock<HttpMessageHandler>();
             this._documentFacetsHttpMessageHandleMock = new Mock<HttpMessageHandler>();
             this._filterDocumentsHttpMessageHandleMock = new Mock<HttpMessageHandler>();
 
             var indexSearchHttpClient = new HttpClient(this._indexSearchHttpMessageHandleMock.Object);
+            var lastClickAnalyticsHttpClient = new HttpClient(this._lastClickAnalyticsHttpMessageHandleMock.Object);
+            var nearestDocumentsHttpClient = new HttpClient(this._nearestDocumentsHttpMessageHandleMock.Object);
             var nlpCallHttpClient = new HttpClient(this._nlpCallHttpMessageHandleMock.Object);
             var documentFacetHttpClient = new HttpClient(this._documentFacetsHttpMessageHandleMock.Object);
-            var filterDocumentHttpClient = new HttpClient(this._filterDocumentsHttpMessageHandleMock.Object);
+            var filterDocumentsHttpClient = new HttpClient(this._filterDocumentsHttpMessageHandleMock.Object);
 
-            var indexSearch = new IndexSearch(null, indexSearchHttpClient, "https://localhost:5000");
-            var nlpCall = new NlpCall(nlpCallHttpClient, "https://localhost:5000");
+            var indexSearch = new IndexSearch(null, this._numberOfResults, indexSearchHttpClient, "https://localhost:5000", null);
+            var lastClickAnalytics = new LastClickAnalytics(lastClickAnalyticsHttpClient, "https://localhost:5000");
+            var nearestDocuments = new NearestDocuments(nearestDocumentsHttpClient, "https://localhost:5000");
+            var nlpCall = new NlpCall(nlpCallHttpClient, this.GetIrrelevantIntents(), "https://localhost:5000", 0.5);
             var documentFacets = new DocumentFacets(documentFacetHttpClient, "https://localhost:5000");
-            var filterDocuments = new FilterDocuments(filterDocumentHttpClient, "https://localhost:5000");
+            var filterDocuments = new FilterDocuments(filterDocumentsHttpClient, "https://localhost:5000");
 
-            var suggestionsService = new SuggestionsService(indexSearch, nlpCall, documentFacets, filterDocuments, this.GetIrrelevantIntents());
+            this._recommenderSettings = new RecommenderSettings
+            {
+                UseAnalyticsSearchRecommender = false,
+                UseFacetQuestionRecommender = true,
+                UseLongQuerySearchRecommender = true,
+                UsePreprocessedQuerySearchRecommender = false,
+                UseNearestDocumentsRecommender = false
+            };
+
+            var suggestionsService = new SuggestionsService(indexSearch, lastClickAnalytics, documentFacets, nearestDocuments, filterDocuments, 7, 0.5, this._recommenderSettings);
 
             var contexts = new InMemoryContexts(new TimeSpan(1, 0, 0, 0));
             var questionsService = new QuestionsService();
-            this._suggestionController = new SuggestionsController(suggestionsService, questionsService, contexts);
+            this._suggestionController = new SuggestionsController(suggestionsService, questionsService, nlpCall, contexts);
         }
 
         [Test]
@@ -79,10 +102,62 @@ namespace WhisperAPI.Tests.Integration
 
             var suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
-            var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q)).ToList();
+            var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q.FacetQuestion)).ToList();
 
-            suggestion.SuggestedDocuments.Should().BeEquivalentTo(GetSuggestedDocuments());
-            suggestion.Questions.Should().BeEquivalentTo(questionsToClient);
+            suggestion.Documents.Select(d => d.Value).Should().BeEquivalentTo(GetSuggestedDocuments());
+            suggestion.Questions.Select(q => q.Value).Should().BeEquivalentTo(questionsToClient);
+        }
+
+        [Test]
+        public void When_getting_suggestions_with_preprocessed_then_returns_suggestions_correctly()
+        {
+            var questions = GetQuestions();
+            this._recommenderSettings.UsePreprocessedQuerySearchRecommender = true;
+
+            this.NlpCallHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(this.GetRelevantNlpAnalysis())));
+            this.IndexSearchHttpMessageHandleMock(HttpStatusCode.OK, this.GetSearchResultStringContent());
+            this.DocumentFacetsHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(questions)));
+            var searchQuery = SearchQueryBuilder.Build.Instance;
+
+            this._suggestionController.OnActionExecuting(this.GetActionExecutingContext(searchQuery));
+            var result = this._suggestionController.GetSuggestions(searchQuery);
+
+            var suggestion = result.As<OkObjectResult>().Value as Suggestion;
+
+            var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q.FacetQuestion)).ToList();
+
+            suggestion.Documents.Select(d => d.Value).Should().BeEquivalentTo(GetSuggestedDocuments());
+            suggestion.Questions.Select(q => q.Value).Should().BeEquivalentTo(questionsToClient);
+
+            suggestion.Documents.All(x => x.RecommendedBy.Count == 2).Should().BeTrue();
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void When_getting_suggestions_with_nearestDocument_then_returns_suggestions_correctly(bool usePreprocessedQuerySearchRecommender)
+        {
+            var questions = GetQuestions();
+            this._recommenderSettings.UseNearestDocumentsRecommender = true;
+            this._recommenderSettings.UsePreprocessedQuerySearchRecommender = usePreprocessedQuerySearchRecommender;
+
+            this.NlpCallHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(this.GetRelevantNlpAnalysis())));
+            this.IndexSearchHttpMessageHandleMock(HttpStatusCode.OK, this.GetSearchResultStringContent());
+            this.NearestDocumentsHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(GetNearestDocumentResult())));
+            this.DocumentFacetsHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(questions)));
+            var searchQuery = SearchQueryBuilder.Build.Instance;
+
+            this._suggestionController.OnActionExecuting(this.GetActionExecutingContext(searchQuery));
+            var result = this._suggestionController.GetSuggestions(searchQuery);
+
+            var suggestion = result.As<OkObjectResult>().Value as Suggestion;
+
+            var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q.FacetQuestion)).ToList();
+
+            suggestion.Documents.Select(d => d.Value).Count().Should().Be(4);
+            suggestion.Documents.Select(d => d.Value.Uri).Contains(GetNearestDocumentResult()[0].Document.Uri).Should().BeTrue();
+            suggestion.Documents.Select(d => d.Value.Uri).Contains(GetNearestDocumentResult()[1].Document.Uri).Should().BeTrue();
+            suggestion.Questions.Select(q => q.Value).Should().BeEquivalentTo(questionsToClient);
         }
 
         [Test]
@@ -105,7 +180,7 @@ namespace WhisperAPI.Tests.Integration
 
             var suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
-            suggestion.SuggestedDocuments.Should().BeEquivalentTo(new List<SuggestedDocument>());
+            suggestion.Documents.Should().BeEquivalentTo(new List<Document>());
         }
 
         [Test]
@@ -153,8 +228,8 @@ namespace WhisperAPI.Tests.Integration
 
             var suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
-            suggestion.SuggestedDocuments.Should().BeEquivalentTo(new List<SuggestedDocument>());
-            suggestion.Questions.Should().BeEquivalentTo(null);
+            suggestion.Documents.Should().BeEquivalentTo(new List<Recommendation<Document>>());
+            suggestion.Questions.Should().BeEquivalentTo(new List<Recommendation<Question>>());
 
             // Customer says: I need help with CoveoSearch API
             searchQuery = SearchQueryBuilder.Build
@@ -174,10 +249,10 @@ namespace WhisperAPI.Tests.Integration
 
             suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
-            var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q)).ToList();
+            var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q.FacetQuestion)).ToList();
 
-            suggestion.SuggestedDocuments.Should().BeEquivalentTo(GetSuggestedDocuments());
-            suggestion.Questions.Should().BeEquivalentTo(questionsToClient);
+            suggestion.Documents.Select(d => d.Value).Should().BeEquivalentTo(GetSuggestedDocuments());
+            suggestion.Questions.Select(q => q.Value).Should().BeEquivalentTo(questionsToClient);
 
             // Agent says: Maybe this could help: https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm
             searchQuery = SearchQueryBuilder.Build
@@ -195,8 +270,8 @@ namespace WhisperAPI.Tests.Integration
 
             suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
-            suggestion.SuggestedDocuments.Count.Should().NotBe(0);
-            suggestion.SuggestedDocuments.Select(x => x.Uri)
+            suggestion.Documents.Count.Should().NotBe(0);
+            suggestion.Documents.Select(d => d.Value).Select(x => x.Uri)
                 .Contains("https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm").Should().BeFalse();
         }
 
@@ -215,8 +290,8 @@ namespace WhisperAPI.Tests.Integration
 
             var suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
-            suggestion.SuggestedDocuments.Should().BeEquivalentTo(new List<SuggestedDocument>());
-            suggestion.Questions.Should().BeEquivalentTo(null);
+            suggestion.Documents.Should().BeEquivalentTo(new List<Recommendation<Document>>());
+            suggestion.Questions.Should().BeEquivalentTo(new List<Recommendation<Question>>());
 
             // Customer says: I need help with CoveoSearch API
             searchQuery = SearchQueryBuilder.Build
@@ -239,49 +314,58 @@ namespace WhisperAPI.Tests.Integration
 
             suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
-            suggestion.SuggestedDocuments.Count.Should().NotBe(0);
-            suggestion.SuggestedDocuments.Select(x => x.Uri)
+            suggestion.Documents.Count.Should().NotBe(0);
+            suggestion.Documents.Select(d => d.Value).Select(x => x.Uri)
                 .Contains("https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm").Should().BeFalse();
         }
 
         [Test]
-        public void When_getting_suggestions_with_more_attribute_then_required_then_returns_correctly()
+        public void When_getting_suggestions_with_more_attribute_than_required_then_returns_correctly()
         {
-            var jsonSearchQuery = "{\"chatkey\": \"aecaa8db-abc8-4ac9-aa8d-87987da2dbb0\",\"Query\": \"Need help with CoveoSearch API\",\"Type\": 1,\"command\": \"sudo ls\"}";
+            var jsonSearchQuery = "{\"chatkey\": \"aecaa8db-abc8-4ac9-aa8d-87987da2dbb0\",\"Query\": \"Need help with CoveoSearch API\",\"Type\": 1,\"command\": \"sudo ls\",\"maxDocuments\": \"10\",\"maxQuestions\": \"10\" }";
             var questions = GetQuestions();
 
-            this.NlpCallHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(this.GetRelevantNlpAnalysis())));
+            var nlpResult = this.GetRelevantNlpAnalysis();
+            nlpResult.ParsedQuery = "Need help with CoveoSearch API";
+            this.NlpCallHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(nlpResult)));
             this.IndexSearchHttpMessageHandleMock(HttpStatusCode.OK, this.GetSearchResultStringContent());
             this.DocumentFacetsHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(questions)));
 
-            this._suggestionController.OnActionExecuting(this.GetActionExecutingContext(JsonConvert.DeserializeObject<SearchQuery>(jsonSearchQuery)));
-            var result = this._suggestionController.GetSuggestions(JsonConvert.DeserializeObject<SearchQuery>(jsonSearchQuery));
+            var deserializedSearchQuery = JsonConvert.DeserializeObject<SearchQuery>(jsonSearchQuery);
+            this._suggestionController.OnActionExecuting(this.GetActionExecutingContext(deserializedSearchQuery));
+            var result = this._suggestionController.GetSuggestions(deserializedSearchQuery);
 
             var suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
-            suggestion.SuggestedDocuments.Should().BeEquivalentTo(GetSuggestedDocuments());
+            suggestion.Documents.Select(d => d.Value).Should().BeEquivalentTo(GetSuggestedDocuments());
         }
 
         [Test]
         public void When_getting_suggestions_then_refresh_result_are_the_same()
         {
-            var queryChatkeyRefresh = new Query
-            {
-                ChatKey = new Guid("aecaa8db-abc8-4ac9-aa8d-87987da2dbb0")
-            };
+            var searchQuery = SearchQueryBuilder.Build
+                .WithChatKey(new Guid("aecaa8db-abc8-4ac9-aa8d-87987da2dbb0"))
+                .Instance;
 
             this.NlpCallHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(this.GetRelevantNlpAnalysis())));
             this.IndexSearchHttpMessageHandleMock(HttpStatusCode.OK, this.GetSearchResultStringContent());
-            this._suggestionController.OnActionExecuting(this.GetActionExecutingContext(queryChatkeyRefresh));
-            var resultSuggestions = this._suggestionController.GetSuggestions(queryChatkeyRefresh);
+            this.DocumentFacetsHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(GetQuestions())));
+            this._suggestionController.OnActionExecuting(this.GetActionExecutingContext(searchQuery));
+
+            var resultSuggestions = this._suggestionController.GetSuggestions(searchQuery);
 
             var suggestion = (Suggestion)resultSuggestions.As<OkObjectResult>().Value;
-            this._suggestionController.OnActionExecuting(this.GetActionExecutingContext(queryChatkeyRefresh));
-            var resultLastSuggestions = this._suggestionController.GetSuggestions(queryChatkeyRefresh);
+            this._suggestionController.OnActionExecuting(this.GetActionExecutingContext(searchQuery));
+
+            var suggestionQuery = SuggestionQueryBuilder.Build
+                .WithChatKey(searchQuery.ChatKey)
+                .Instance;
+
+            var resultLastSuggestions = this._suggestionController.GetSuggestions(suggestionQuery);
 
             var lastSuggestion = (Suggestion)resultLastSuggestions.As<OkObjectResult>().Value;
-            lastSuggestion.SuggestedDocuments.Should().BeEquivalentTo(suggestion.SuggestedDocuments);
-            lastSuggestion.Questions.Should().BeEquivalentTo(suggestion.Questions);
+            lastSuggestion.Documents.Select(d => d.Value).Should().BeEquivalentTo(suggestion.Documents.Select(d => d.Value));
+            lastSuggestion.Questions.Select(q => q.Value).Should().BeEquivalentTo(suggestion.Questions.Select(q => q.Value));
             lastSuggestion.ActiveFacets.Should().BeEquivalentTo(suggestion.ActiveFacets);
         }
 
@@ -297,57 +381,63 @@ namespace WhisperAPI.Tests.Integration
             this.NlpCallHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(this.GetRelevantNlpAnalysis())));
             this.IndexSearchHttpMessageHandleMock(HttpStatusCode.OK, this.GetSearchResultStringContent());
             this.DocumentFacetsHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(questions)));
-            this.FilterDocumentHttpMessageHandleMock(HttpStatusCode.OK, new StringContent(JsonConvert.SerializeObject(GetSuggestedDocuments().Select(x => x.Id))));
 
             this._suggestionController.OnActionExecuting(this.GetActionExecutingContext(searchQuery));
             var result = this._suggestionController.GetSuggestions(searchQuery);
 
             var suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
-            var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q)).ToList();
+            var questionsToClient = questions.Select(q => QuestionToClient.FromQuestion(q.FacetQuestion)).ToList();
 
-            suggestion.SuggestedDocuments.Should().BeEquivalentTo(GetSuggestedDocuments());
-            suggestion.Questions.Should().BeEquivalentTo(questionsToClient);
+            suggestion.Documents.Select(d => d.Value).Should().BeEquivalentTo(GetSuggestedDocuments());
+            suggestion.Questions.Select(q => q.Value).Should().BeEquivalentTo(questionsToClient);
 
             // Agent click on a question in the UI
-            var selectQuery = SelectQueryBuilder.Build.WithChatKey(searchQuery.ChatKey).WithId(questions[0].Id).Instance;
+            var selectQuery = SelectQueryBuilder.Build.WithChatKey(searchQuery.ChatKey).WithId(questions[0].FacetQuestion.Id).Instance;
             this._suggestionController.SelectSuggestion(selectQuery);
 
             // Agent asks the question he clicked to the custommer
-            searchQuery.Type = SearchQuery.MessageType.Agent;
-            searchQuery.Query = questions[0].Text;
+            searchQuery = SearchQueryBuilder.Build
+                .WithMessageType(SearchQuery.MessageType.Agent)
+            .WithQuery(questions[0].FacetQuestion.Text)
+            .Instance;
             result = this._suggestionController.GetSuggestions(searchQuery);
             suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
-            suggestion.SuggestedDocuments.Should().BeEquivalentTo(GetSuggestedDocuments());
-            suggestion.Questions.Count.Should().Be(1);
-            suggestion.Questions.Single().Should().BeEquivalentTo(questionsToClient[1]);
+            suggestion.Documents.Select(d => d.Value).Should().BeEquivalentTo(GetSuggestedDocuments());
+
+            var questionsReceived = suggestion.Questions.Select(q => q.Value);
+            questionsReceived.Count().Should().Be(1);
+            questionsReceived.Single().Should().BeEquivalentTo(questionsToClient[1]);
 
             // Client respond to the answer
-            var answerFromClient = (questions[0] as FacetQuestion)?.FacetValues.FirstOrDefault();
+            var answerFromClient = (questions[0].FacetQuestion as FacetQuestion)?.FacetValues.FirstOrDefault();
             searchQuery.Type = SearchQuery.MessageType.Customer;
             searchQuery.Query = answerFromClient;
             result = this._suggestionController.GetSuggestions(searchQuery);
             suggestion = result.As<OkObjectResult>().Value as Suggestion;
 
-            // The return list from facet is the same list than the complete list so it should filtered everything
-            suggestion.SuggestedDocuments.Should().BeEmpty();
             suggestion.ActiveFacets.Should().HaveCount(1);
-            suggestion.ActiveFacets[0].Value = answerFromClient;
+            suggestion.ActiveFacets[0].Values.Contains(answerFromClient).Should().BeTrue();
 
             // Agent clear the facet
             result = this._suggestionController.RemoveFacet(suggestion.ActiveFacets[0].Id, searchQuery);
+            result.Should().BeOfType<NoContentResult>();
+
+            // Get the suggestion after clear
+            var query = SuggestionQueryBuilder.Build.WithChatKey(searchQuery.ChatKey).Instance;
+            result = this._suggestionController.GetSuggestions(query);
             suggestion = result.As<OkObjectResult>().Value as Suggestion;
             suggestion.Should().NotBeNull();
-            suggestion?.ActiveFacets.Should().BeNull();
-            suggestion?.SuggestedDocuments.Should().BeEquivalentTo(GetSuggestedDocuments());
+            suggestion.ActiveFacets.Should().HaveCount(0);
+            suggestion.Documents.Select(d => d.Value).Should().BeEquivalentTo(GetSuggestedDocuments());
         }
 
-        private static List<SuggestedDocument> GetSuggestedDocuments()
+        private static List<Document> GetSuggestedDocuments()
         {
-            return new List<SuggestedDocument>
+            return new List<Document>
             {
-                new SuggestedDocument
+                new Document
                 {
                     Title = "Available Coveo Cloud V2 Source Types",
                     Uri = "https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm",
@@ -355,7 +445,7 @@ namespace WhisperAPI.Tests.Integration
                     Summary = null,
                     Excerpt = null
                 },
-                new SuggestedDocument
+                new Document
                 {
                     Title = "Coveo Cloud Query Syntax Reference",
                     Uri = "https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm",
@@ -363,7 +453,7 @@ namespace WhisperAPI.Tests.Integration
                     Summary = null,
                     Excerpt = null
                 },
-                new SuggestedDocument
+                new Document
                 {
                     Title = "Events",
                     Uri = "https://developers.coveo.com/display/JsSearchV1/Page/27230520/27230472/27230573",
@@ -371,7 +461,7 @@ namespace WhisperAPI.Tests.Integration
                     Summary = null,
                     Excerpt = null
                 },
-                new SuggestedDocument
+                new Document
                 {
                     Title = "Coveo Facet Component (CoveoFacet)",
                     Uri = "https://coveo.github.io/search-ui/components/facet.html",
@@ -382,18 +472,54 @@ namespace WhisperAPI.Tests.Integration
             };
         }
 
-        private static List<Question> GetQuestions()
+        private static List<FacetQuestionResult> GetQuestions()
         {
-            return new List<Question>
+            return new List<FacetQuestionResult>
             {
-                FacetQuestionBuilder.Build.WithFacetName("Dummy").WithFacetValues("A", "B", "C").Instance,
-                FacetQuestionBuilder.Build.WithFacetName("Dummy").WithFacetValues("C", "D", "E").Instance,
+                FacetQuestionResultBuilder.Build
+                    .WithFacetQuestion(
+                        FacetQuestionBuilder.Build
+                            .WithFacetName("Dummy")
+                            .WithFacetValues("A", "B", "C")
+                            .Instance)
+                    .Instance,
+                FacetQuestionResultBuilder.Build
+                    .WithFacetQuestion(
+                        FacetQuestionBuilder.Build
+                            .WithFacetName("Dummy")
+                            .WithFacetValues("C", "D", "E")
+                            .Instance)
+                    .Instance
+            };
+        }
+
+        private static List<NearestDocumentsResult> GetNearestDocumentResult()
+        {
+            return new List<NearestDocumentsResult>
+            {
+                NearestDocumentsResultBuilder.Build
+                    .WithScore(0.98)
+                    .WithDocument(DocumentBuilder.Build.WithUri("https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm").Instance).Instance,
+                NearestDocumentsResultBuilder.Build
+                    .WithScore(0.95)
+                    .WithDocument(DocumentBuilder.Build.WithUri("https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm").Instance).Instance
             };
         }
 
         private void IndexSearchHttpMessageHandleMock(HttpStatusCode statusCode, HttpContent content)
         {
             this._indexSearchHttpMessageHandleMock.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .Returns(Task.FromResult(new HttpResponseMessage
+                {
+                    StatusCode = statusCode,
+                    Content = content
+                }));
+        }
+
+        private void NearestDocumentsHttpMessageHandleMock(HttpStatusCode statusCode, HttpContent content)
+        {
+            this._nearestDocumentsHttpMessageHandleMock.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
                 .Returns(Task.FromResult(new HttpResponseMessage
                 {
@@ -424,6 +550,8 @@ namespace WhisperAPI.Tests.Integration
                 }));
         }
 
+        // Now unused, but kept in case we choose to use it again
+        /*
         private void FilterDocumentHttpMessageHandleMock(HttpStatusCode statusCode, HttpContent content)
         {
             this._filterDocumentsHttpMessageHandleMock.Protected()
@@ -434,6 +562,7 @@ namespace WhisperAPI.Tests.Integration
                     Content = content
                 }));
         }
+        */
 
         private ActionExecutingContext GetActionExecutingContext(Query query)
         {
@@ -493,7 +622,7 @@ namespace WhisperAPI.Tests.Integration
 
         private StringContent GetSearchResultStringContent()
         {
-            return new StringContent("{\"totalCount\": 4,\"results\": [{\"title\": \"Available Coveo Cloud V2 Source Types\", \"excerpt\": \"This is the excerpt\", \"clickUri\": \"https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm\",\"printableUri\": \"https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm\",\"score\": 4280       },{\"title\": \"Coveo Cloud Query Syntax Reference\",\"excerpt\": \"This is the excerpt\", \"clickUri\": \"https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm\",\"printableUri\": \"https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm\",\"score\": 3900},{\"title\": \"Events\", \"excerpt\": \"This is the excerpt\", \"clickUri\": \"https://developers.coveo.com/display/JsSearchV1/Page/27230520/27230472/27230573\",\"printableUri\": \"https://developers.coveo.com/display/JsSearchV1/Page/27230520/27230472/27230573\",\"score\": 2947},{\"title\": \"Coveo Facet Component (CoveoFacet)\", \"excerpt\": \"This is the excerpt\", \"clickUri\": \"https://coveo.github.io/search-ui/components/facet.html\",\"printableUri\": \"https://coveo.github.io/search-ui/components/facet.html\",\"score\": 2932}]}");
+            return new StringContent("{\"totalCount\": 4,\"results\": [{\"title\": \"Available Coveo Cloud V2 Source Types\", \"excerpt\": \"This is the excerpt\", \"clickUri\": \"https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm\",\"printableUri\": \"https://onlinehelp.coveo.com/en/cloud/Available_Coveo_Cloud_V2_Source_Types.htm\",\"score\": 4280, \"percentScore\": 75},{\"title\": \"Coveo Cloud Query Syntax Reference\",\"excerpt\": \"This is the excerpt\", \"clickUri\": \"https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm\",\"printableUri\": \"https://onlinehelp.coveo.com/en/cloud/Coveo_Cloud_Query_Syntax_Reference.htm\",\"score\": 3900, \"percentScore\": 75},{\"title\": \"Events\", \"excerpt\": \"This is the excerpt\", \"clickUri\": \"https://developers.coveo.com/display/JsSearchV1/Page/27230520/27230472/27230573\",\"printableUri\": \"https://developers.coveo.com/display/JsSearchV1/Page/27230520/27230472/27230573\",\"score\": 2947, \"percentScore\": 75},{\"title\": \"Coveo Facet Component (CoveoFacet)\", \"excerpt\": \"This is the excerpt\", \"clickUri\": \"https://coveo.github.io/search-ui/components/facet.html\",\"printableUri\": \"https://coveo.github.io/search-ui/components/facet.html\",\"score\": 2932, \"percentScore\": 75}]}");
         }
 
         private List<string> GetIrrelevantIntents()

@@ -22,20 +22,20 @@ namespace WhisperAPI.Services.Context
 
         private DbSet<ConversationContext> ConversationContexts { get; set; }
 
-        // Get the Conversation associated to the chatkey,
+        // Get the Conversation associated to the chatKey,
         // create a new one if doesn't already exist
-        public ConversationContext this[Guid chatkey]
+        public ConversationContext this[Guid chatKey]
         {
             get
             {
                 ConversationContext conversationContext = this.ConversationContexts
-                    .Include(x => x.SearchQueries)
+                    .Include(x => x.ContextItems)
                     .Include(x => x.SuggestedDocuments)
-                    .FirstOrDefault(x => x.ChatKey == chatkey);
+                    .FirstOrDefault(x => x.ChatKey == chatKey);
 
                 if (conversationContext == null)
                 {
-                    conversationContext = new ConversationContext(chatkey, DateTime.Now);
+                    conversationContext = new ConversationContext(chatKey, DateTime.Now);
                     this.ConversationContexts.Add(conversationContext);
                     this.SaveChangesAsync();
                 }

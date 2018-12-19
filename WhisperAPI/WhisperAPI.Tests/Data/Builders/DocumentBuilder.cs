@@ -3,7 +3,7 @@ using WhisperAPI.Models;
 
 namespace WhisperAPI.Tests.Data.Builders
 {
-    public class SuggestedDocumentBuilder
+    public class DocumentBuilder
     {
         private Guid _id;
 
@@ -17,9 +17,9 @@ namespace WhisperAPI.Tests.Data.Builders
 
         private string _excerpt;
 
-        public static SuggestedDocumentBuilder Build => new SuggestedDocumentBuilder();
+        public static DocumentBuilder Build => new DocumentBuilder();
 
-        public SuggestedDocument Instance => new SuggestedDocument
+        public Document Instance => new Document
         {
             Id = this._id,
             Summary = this._summary,
@@ -29,7 +29,7 @@ namespace WhisperAPI.Tests.Data.Builders
             Excerpt = this._excerpt
         };
 
-        public SuggestedDocumentBuilder()
+        public DocumentBuilder()
         {
             this._id = Guid.NewGuid();
             this._summary = "Summary";
@@ -39,37 +39,37 @@ namespace WhisperAPI.Tests.Data.Builders
             this._title = "Title";
         }
 
-        public SuggestedDocumentBuilder WithId(Guid id)
+        public DocumentBuilder WithId(Guid id)
         {
             this._id = id;
             return this;
         }
 
-        public SuggestedDocumentBuilder WithTitle(string title)
+        public DocumentBuilder WithTitle(string title)
         {
             this._title = title;
             return this;
         }
 
-        public SuggestedDocumentBuilder WithSummary(string summary)
+        public DocumentBuilder WithSummary(string summary)
         {
             this._summary = summary;
             return this;
         }
 
-        public SuggestedDocumentBuilder WithExcerpt(string excerpt)
+        public DocumentBuilder WithExcerpt(string excerpt)
         {
             this._excerpt = excerpt;
             return this;
         }
 
-        public SuggestedDocumentBuilder WithUri(string uri)
+        public DocumentBuilder WithUri(string uri)
         {
             this._uri = uri;
             return this;
         }
 
-        public SuggestedDocumentBuilder WithPrintableUri(string printableUri)
+        public DocumentBuilder WithPrintableUri(string printableUri)
         {
             this._printableUri = printableUri;
             return this;

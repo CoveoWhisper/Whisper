@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -6,21 +7,28 @@ using FluentAssertions;
 using Moq;
 using Moq.Protected;
 using NUnit.Framework;
+using WhisperAPI.Models.MLAPI;
 using WhisperAPI.Models.Search;
 using WhisperAPI.Services.Search;
+using WhisperAPI.Tests.Data.Builders;
 
 namespace WhisperAPI.Tests.Unit
 {
     [TestFixture]
     public class IndexSearchTest
     {
+        private readonly int _numberOfResults = 1000;
         private Mock<HttpMessageHandler> _httpMessageHandler;
         private HttpClient _httpClient;
+        private IIndexSearch _indexSearch;
 
         [SetUp]
         public void SetUp()
         {
-           this._httpMessageHandler = new Mock<HttpMessageHandler>();
+            this._httpMessageHandler = new Mock<HttpMessageHandler>();
+
+            this._httpClient = new HttpClient(this._httpMessageHandler.Object);
+            this._indexSearch = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000", null);
         }
 
         [Test]
@@ -36,9 +44,25 @@ namespace WhisperAPI.Tests.Unit
                 }));
 
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
-            IIndexSearch indexSearchOK = new IndexSearch(null, this._httpClient, "https://localhost:5000");
+            IIndexSearch indexSearchOK = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000", null);
+            indexSearchOK.LqSearch(query, new List<Facet>()).Result.Should().BeEquivalentTo(this.GetSearchResult());
+        }
 
-            indexSearchOK.Search(query).Should().BeEquivalentTo(this.GetSearchResult());
+        [Test]
+        [TestCase("test")]
+        public void When_receive_ok_response_from_q_post_then_return_result_correctly(string query)
+        {
+            this._httpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .Returns(Task.FromResult(new HttpResponseMessage
+                {
+                    StatusCode = System.Net.HttpStatusCode.OK,
+                    Content = this.GetStringContent()
+                }));
+
+            this._httpClient = new HttpClient(this._httpMessageHandler.Object);
+            IIndexSearch indexSearchOK = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000", null);
+            indexSearchOK.QSearch(query, new List<Facet>()).Result.Should().BeEquivalentTo(this.GetSearchResult());
         }
 
         [Test]
@@ -54,9 +78,8 @@ namespace WhisperAPI.Tests.Unit
                 }));
 
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
-            IIndexSearch indexSearchNotFound = new IndexSearch(null, this._httpClient, "https://localhost:5000");
-
-            Assert.Throws<HttpRequestException>(() => indexSearchNotFound.Search(query));
+            IIndexSearch indexSearchNotFound = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000", null);
+            Assert.Throws<AggregateException>(() => indexSearchNotFound.LqSearch(query, new List<Facet>()).Wait());
         }
 
         [Test]
@@ -72,9 +95,25 @@ namespace WhisperAPI.Tests.Unit
                 }));
 
             this._httpClient = new HttpClient(this._httpMessageHandler.Object);
-            IIndexSearch indexSearchOKNoContent = new IndexSearch(null, this._httpClient, "https://localhost:5000");
+            IIndexSearch indexSearchOKNoContent = new IndexSearch(null, this._numberOfResults, this._httpClient, "https://localhost:5000", null);
 
-            indexSearchOKNoContent.Search(query).Should().BeEquivalentTo((SearchResult)null);
+            indexSearchOKNoContent.LqSearch(query, new List<Facet>()).Result.Should().BeEquivalentTo((SearchResult)null);
+        }
+
+        [Test]
+        public void When_active_facets_then_aq_is_parsed_in_correctly()
+        {
+            var facet = FacetBuilder.Build
+                .WithName("Bob").AddValue("Ross").AddValue("Test")
+                .Instance;
+            var facet2 = FacetBuilder.Build
+                .WithName("John").AddValue("Doe")
+                .Instance;
+            var mustHaveFacets = new List<Facet> { facet, facet2 };
+
+            var result = ((IndexSearch)this._indexSearch).GenerateAdvancedQuery(mustHaveFacets);
+
+            result.Should().BeEquivalentTo("(Bob==Ross OR Bob==Test) AND (John==Doe)");
         }
 
         public SearchResult GetSearchResult()

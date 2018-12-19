@@ -45,7 +45,7 @@ WhisperAPI.Tests/bin/
 WhisperAPI/obj/
 WhisperAPI.Tests/obj/
 
-WhisperAPI\logs
+WhisperAPI/logs
 
 # Artifacts of the IDE and build
 *.sln.ide/

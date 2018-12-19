@@ -1,38 +1,38 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using WhisperAPI.Models.Queries;
+using WhisperAPI.Models.MLAPI;
 
 namespace WhisperAPI.Models
 {
     public class ConversationContext
     {
-        public ConversationContext(Guid chatkey, DateTime datetime)
+        public ConversationContext(Guid chatKey, DateTime datetime)
             : this()
         {
-            this.ChatKey = chatkey;
+            this.ChatKey = chatKey;
             this.StartDate = datetime;
         }
 
         public ConversationContext()
         {
-            this.SearchQueries = new List<SearchQuery>();
-            this.SuggestedDocuments = new HashSet<SuggestedDocument>();
-            this.LastSuggestedDocuments = new List<SuggestedDocument>();
+            this.ContextItems = new List<ContextItem>();
+            this.SuggestedDocuments = new HashSet<Document>();
             this.LastSuggestedQuestions = new List<Question>();
             this.Questions = new HashSet<Question>();
-            this.SelectedSuggestedDocuments = new HashSet<SuggestedDocument>();
+            this.SelectedSuggestedDocuments = new HashSet<Document>();
+            this.MustHaveFacets = new List<Facet>();
         }
 
         public Guid ChatKey { get; set; }
 
         public DateTime StartDate { get; set; }
 
-        public List<SearchQuery> SearchQueries { get; set; }
+        public List<ContextItem> ContextItems { get; set; }
 
-        public HashSet<SuggestedDocument> SuggestedDocuments { get; set; }
+        public HashSet<Document> SuggestedDocuments { get; set; }
 
-        public HashSet<SuggestedDocument> SelectedSuggestedDocuments { get; set; }
+        public HashSet<Document> SelectedSuggestedDocuments { get; set; }
 
         public HashSet<Question> Questions { get; set; }
 
@@ -42,8 +42,35 @@ namespace WhisperAPI.Models
 
         public IReadOnlyList<Question> AnsweredQuestions => this.Questions.Where(q => q.Status == QuestionStatus.Answered).ToList();
 
-        public List<SuggestedDocument> LastSuggestedDocuments { get; set; }
-
         public List<Question> LastSuggestedQuestions { get; set; }
+
+        public List<Facet> MustHaveFacets { get; set; }
+
+        public void AddMustHaveFacets(Facet facet)
+        {
+            if (this.MustHaveFacets.Contains(facet))
+            {
+                var mustHaveFacet = this.MustHaveFacets.Single(f => f.Id == facet.Id);
+                foreach (var facetValue in facet.Values)
+                {
+                    if (!mustHaveFacet.Values.Contains(facetValue))
+                    {
+                        mustHaveFacet.Values.Add(facetValue);
+                    }
+                }
+            }
+            else
+            {
+                this.MustHaveFacets.Add(facet);
+            }
+        }
+
+        public void RemoveFacetValue(Facet facet)
+        {
+            foreach (var facetValue in facet.Values)
+            {
+                this.MustHaveFacets.Single(f => f.Id == facet.Id).Values.Remove(facetValue);
+            }
+        }
     }
 }

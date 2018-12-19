@@ -1,9 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using WhisperAPI.Models.NLPAPI;
+using WhisperAPI.Models.Queries;
 
 namespace WhisperAPI.Services.NLPAPI
 {
@@ -11,23 +15,43 @@ namespace WhisperAPI.Services.NLPAPI
     {
         private static readonly log4net.ILog Log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        private readonly string _baseAddress;
-
         private readonly HttpClient _httpClient;
 
-        public NlpCall(HttpClient httpClient, string baseAddress)
+        private readonly List<string> _irrelevantIntents;
+
+        private readonly string _baseAddress;
+
+        private double _minimumRelevantConfidence;
+
+        public NlpCall(HttpClient httpClient, List<string> irrelevantIntents, string baseAddress, double minimumRelevantConfidence)
         {
             this._httpClient = httpClient;
+            this._irrelevantIntents = irrelevantIntents;
             this._baseAddress = baseAddress;
+            this._minimumRelevantConfidence = minimumRelevantConfidence;
             this.InitHttpClient();
         }
 
-        public NlpAnalysis GetNlpAnalysis(string sentence)
+        public NlpAnalysis AnalyzeSearchQuery(SearchQuery searchQuery, out bool relevant)
         {
-            var response = this._httpClient.PostAsync("NLP/Analyze", CreateStringContent(sentence)).Result;
+            var response = this._httpClient.PostAsync("NLP/Analyze", CreateStringContent(searchQuery.Query)).Result;
             response.EnsureSuccessStatusCode();
+            var nlpAnalysis = JsonConvert.DeserializeObject<NlpAnalysis>(response.Content.ReadAsStringAsync().Result);
 
-            return JsonConvert.DeserializeObject<NlpAnalysis>(response.Content.ReadAsStringAsync().Result);
+            if (nlpAnalysis == null)
+            {
+                throw new FormatException();
+            }
+
+            relevant = this.IsQueryRelevant(nlpAnalysis);
+            return nlpAnalysis;
+        }
+
+        internal bool IsQueryRelevant(NlpAnalysis nlpAnalysis)
+        {
+            nlpAnalysis.Intents.ForEach(x => Log.Debug($"Intent - Name: {x.Name}, Confidence: {x.Confidence}"));
+            nlpAnalysis.Entities.ForEach(x => Log.Debug($"Entity - Name: {x.Name}"));
+            return this.IsIntentRelevant(nlpAnalysis);
         }
 
         private static StringContent CreateStringContent(string sentence)
@@ -40,6 +64,23 @@ namespace WhisperAPI.Services.NLPAPI
             this._httpClient.BaseAddress = new Uri(this._baseAddress);
             this._httpClient.DefaultRequestHeaders.Accept.Clear();
             this._httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        }
+
+        private bool IsIntentRelevant(NlpAnalysis nlpAnalysis)
+        {
+            var mostConfidentIntent = nlpAnalysis.Intents.OrderByDescending(x => x.Confidence).First();
+
+            if (mostConfidentIntent.Confidence < this._minimumRelevantConfidence)
+            {
+                return true;
+            }
+
+            return !this._irrelevantIntents.Any(x => Regex.IsMatch(mostConfidentIntent.Name, this.WildCardToRegularExpression(x)));
+        }
+
+        private string WildCardToRegularExpression(string value)
+        {
+            return "^" + Regex.Escape(value).Replace("\\*", ".*") + "$";
         }
     }
 }

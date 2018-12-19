@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,24 +37,25 @@ namespace WhisperAPI.Tests.Unit
                 IntentBuilder.Build.WithName("Need Help").Instance
             };
 
-            var nlpAnalysis = NlpAnalysisBuilder.Build.WithIntents(intents).Instance;
+            var analysis = NlpAnalysisBuilder.Build.WithIntents(intents).Instance;
             const string baseAddress = "http://localhost:5000";
 
             this._httpClient = new HttpClient(this._httpMessageHandlerMock.Object);
-            this._nlpCall = new NlpCall(this._httpClient, baseAddress);
+            this._nlpCall = new NlpCall(this._httpClient, this.GetIrrelevantIntents(), baseAddress, 0.5);
 
             this._httpMessageHandlerMock.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
                 .Returns(Task.FromResult(new HttpResponseMessage
                 {
                     StatusCode = System.Net.HttpStatusCode.OK,
-                    Content = new StringContent(JsonConvert.SerializeObject(nlpAnalysis))
+                    Content = new StringContent(JsonConvert.SerializeObject(analysis))
                 }));
 
-            var result = this._nlpCall.GetNlpAnalysis(sentence);
+            var searchQuery = SearchQueryBuilder.Build.WithQuery(sentence).Instance;
+            var nlpAnalysis = this._nlpCall.AnalyzeSearchQuery(searchQuery, out bool relevant);
 
-            result.Intents.Should().BeEquivalentTo(nlpAnalysis.Intents);
-            result.Entities.Should().BeEquivalentTo(nlpAnalysis.Entities);
+            relevant.Should().BeTrue();
+            nlpAnalysis.ParsedQuery.Should().BeEquivalentTo(nlpAnalysis.ParsedQuery);
         }
 
         [Test]
@@ -63,7 +65,7 @@ namespace WhisperAPI.Tests.Unit
             const string baseAddress = "http://localhost:5000";
 
             this._httpClient = new HttpClient(this._httpMessageHandlerMock.Object);
-            this._nlpCall = new NlpCall(this._httpClient, baseAddress);
+            this._nlpCall = new NlpCall(this._httpClient, this.GetIrrelevantIntents(), baseAddress, 0.5);
 
             this._httpMessageHandlerMock.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -73,7 +75,8 @@ namespace WhisperAPI.Tests.Unit
                     Content = new StringContent(string.Empty)
                 }));
 
-            Assert.Throws<HttpRequestException>(() => this._nlpCall.GetNlpAnalysis(sentence));
+            var searchQuery = SearchQueryBuilder.Build.WithQuery(sentence).Instance;
+            Assert.Throws<HttpRequestException>(() => this._nlpCall.AnalyzeSearchQuery(searchQuery, out bool relevant));
         }
 
         [Test]
@@ -83,7 +86,7 @@ namespace WhisperAPI.Tests.Unit
             const string baseAddress = "http://localhost:5000";
 
             this._httpClient = new HttpClient(this._httpMessageHandlerMock.Object);
-            this._nlpCall = new NlpCall(this._httpClient, baseAddress);
+            this._nlpCall = new NlpCall(this._httpClient, this.GetIrrelevantIntents(), baseAddress, 0.5);
 
             this._httpMessageHandlerMock.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -93,17 +96,18 @@ namespace WhisperAPI.Tests.Unit
                     Content = new StringContent(string.Empty)
                 }));
 
-            Assert.Throws<HttpRequestException>(() => this._nlpCall.GetNlpAnalysis(sentence));
+            var searchQuery = SearchQueryBuilder.Build.WithQuery(sentence).Instance;
+            Assert.Throws<HttpRequestException>(() => this._nlpCall.AnalyzeSearchQuery(searchQuery, out bool relevant));
         }
 
         [Test]
         [TestCase("Test")]
-        public void When_receive_ok_response_with_empty_content_from_post_then_returns_null(string sentence)
+        public void When_receive_ok_response_with_empty_content_from_post_then_throws_exception(string sentence)
         {
             const string baseAddress = "http://localhost:5000";
 
             this._httpClient = new HttpClient(this._httpMessageHandlerMock.Object);
-            this._nlpCall = new NlpCall(this._httpClient, baseAddress);
+            this._nlpCall = new NlpCall(this._httpClient, this.GetIrrelevantIntents(), baseAddress, 0.5);
 
             this._httpMessageHandlerMock.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -113,8 +117,82 @@ namespace WhisperAPI.Tests.Unit
                     Content = new StringContent(JsonConvert.SerializeObject(string.Empty))
                 }));
 
-            var result = this._nlpCall.GetNlpAnalysis(sentence);
-            result.Should().BeEquivalentTo((NlpAnalysis)null);
+            var searchQuery = SearchQueryBuilder.Build.WithQuery(sentence).Instance;
+            Assert.Throws<FormatException>(() => this._nlpCall.AnalyzeSearchQuery(searchQuery, out bool relevant));
+        }
+
+        [Test]
+        [TestCase("*#")]
+        [TestCase("I*")]
+        [TestCase("*like*")]
+        [TestCase("I*i*C*")]
+        [TestCase("I like C#")]
+        public void When_Intent_With_and_without_Wildcard_is_irrelevant(string wildcardString)
+        {
+            var searchQuery = SearchQueryBuilder.Build.WithQuery("I like C#").Instance;
+
+            var intentsFromNLP = new List<Intent>
+            {
+                IntentBuilder.Build.WithName("I like C#").Instance
+            };
+
+            var nlpAnalysis = NlpAnalysisBuilder.Build.WithIntents(intentsFromNLP).Instance;
+            const string baseAddress = "http://localhost:5000";
+
+            this._httpClient = new HttpClient(this._httpMessageHandlerMock.Object);
+            this._nlpCall = new NlpCall(this._httpClient, new List<string> { wildcardString }, baseAddress, 0.5);
+
+            this._httpMessageHandlerMock.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .Returns(Task.FromResult(new HttpResponseMessage
+                {
+                    StatusCode = System.Net.HttpStatusCode.OK,
+                    Content = new StringContent(JsonConvert.SerializeObject(nlpAnalysis))
+                }));
+
+            this._nlpCall.AnalyzeSearchQuery(searchQuery, out bool relevant);
+            relevant.Should().BeFalse();
+        }
+
+        [Test]
+        [TestCase("*#")]
+        [TestCase("I*")]
+        [TestCase("*like*")]
+        [TestCase("I*i*C*")]
+        [TestCase("I like C#")]
+        public void When_Intent_is_relevant(string wildcardString)
+        {
+            var searchQuery = SearchQueryBuilder.Build.WithQuery("I like C#").Instance;
+
+            var intentsFromNLP = new List<Intent>
+            {
+                IntentBuilder.Build.WithName("You prefer JAVA").Instance
+            };
+
+            var nlpAnalysis = NlpAnalysisBuilder.Build.WithIntents(intentsFromNLP).Instance;
+            const string baseAddress = "http://localhost:5000";
+
+            this._httpClient = new HttpClient(this._httpMessageHandlerMock.Object);
+            this._nlpCall = new NlpCall(this._httpClient, new List<string> { wildcardString }, baseAddress, 0.5);
+
+            this._httpMessageHandlerMock.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .Returns(Task.FromResult(new HttpResponseMessage
+                {
+                    StatusCode = System.Net.HttpStatusCode.OK,
+                    Content = new StringContent(JsonConvert.SerializeObject(nlpAnalysis))
+                }));
+
+            this._nlpCall.AnalyzeSearchQuery(searchQuery, out bool relevant);
+            relevant.Should().BeTrue();
+        }
+
+        private List<string> GetIrrelevantIntents()
+        {
+            return new List<string>
+            {
+                "Greetings"
+            };
         }
     }
 }

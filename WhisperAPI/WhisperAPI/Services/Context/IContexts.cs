@@ -5,6 +5,6 @@ namespace WhisperAPI.Services.Context
 {
     public interface IContexts
     {
-        ConversationContext this[Guid chatkey] { get; }
+        ConversationContext this[Guid chatKey] { get; }
     }
 }

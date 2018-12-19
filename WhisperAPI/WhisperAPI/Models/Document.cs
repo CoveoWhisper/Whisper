@@ -3,13 +3,14 @@ using WhisperAPI.Models.Search;
 
 namespace WhisperAPI.Models
 {
-    public class SuggestedDocument
+    public class Document
     {
-        public SuggestedDocument()
+        public Document()
         {
+            this.Id = Guid.NewGuid();
         }
 
-        public SuggestedDocument(ISearchResultElement searchResultElement)
+        public Document(ISearchResultElement searchResultElement)
         {
             this.Id = Guid.NewGuid();
             this.Title = searchResultElement.Title;
@@ -48,7 +49,7 @@ namespace WhisperAPI.Models
                 return false;
             }
 
-            return this.Equals((SuggestedDocument)obj);
+            return this.Equals((Document)obj);
         }
 
         public override int GetHashCode()
@@ -59,7 +60,7 @@ namespace WhisperAPI.Models
             }
         }
 
-        protected bool Equals(SuggestedDocument other)
+        protected bool Equals(Document other)
         {
             return string.Equals(this.Title, other.Title) && string.Equals(this.Uri, other.Uri);
         }

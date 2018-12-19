@@ -5,9 +5,9 @@ namespace WhisperAPI.Models
 {
     public class Suggestion
     {
-        public List<QuestionToClient> Questions { get; set; }
+        public List<Recommendation<QuestionToClient>> Questions { get; set; }
 
-        public List<SuggestedDocument> SuggestedDocuments { get; set; }
+        public List<Recommendation<Document>> Documents { get; set; }
 
         public List<Facet> ActiveFacets { get; set; }
     }

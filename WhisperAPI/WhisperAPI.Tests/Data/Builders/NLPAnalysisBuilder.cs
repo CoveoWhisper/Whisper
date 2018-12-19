@@ -9,18 +9,22 @@ namespace WhisperAPI.Tests.Data.Builders
 
         private List<Entity> _entities;
 
+        private string _preProcessedQuery;
+
         public static NlpAnalysisBuilder Build => new NlpAnalysisBuilder();
 
         public NlpAnalysis Instance => new NlpAnalysis
         {
             Intents = this._intents,
-            Entities = this._entities
+            Entities = this._entities,
+            ParsedQuery = this._preProcessedQuery
         };
 
         private NlpAnalysisBuilder()
         {
             this._intents = new List<Intent>();
             this._entities = new List<Entity>();
+            this._preProcessedQuery = "test";
         }
 
         public NlpAnalysisBuilder WithIntents(List<Intent> intents)
@@ -32,6 +36,12 @@ namespace WhisperAPI.Tests.Data.Builders
         public NlpAnalysisBuilder WithEntities(List<Entity> entities)
         {
             this._entities = entities;
+            return this;
+        }
+
+        public NlpAnalysisBuilder WithQuery(string query)
+        {
+            this._preProcessedQuery = query;
             return this;
         }
     }

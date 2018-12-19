@@ -7,7 +7,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Swashbuckle.AspNetCore.Swagger;
 using WhisperAPI.Services.Context;
+using WhisperAPI.Services.Facets;
 using WhisperAPI.Services.MLAPI.Facets;
+using WhisperAPI.Services.MLAPI.LastClickAnalytics;
+using WhisperAPI.Services.MLAPI.NearestDocuments;
 using WhisperAPI.Services.NLPAPI;
 using WhisperAPI.Services.Questions;
 using WhisperAPI.Services.Search;
@@ -48,7 +51,10 @@ namespace WhisperAPI
             var applicationSettings = new ApplicationSettings();
             this.Configuration.Bind(applicationSettings);
 
-            ConfigureDependency(services, applicationSettings);
+            var recommenderSettings = new RecommenderSettings();
+            this.Configuration.GetSection("Recommender").Bind(recommenderSettings);
+
+            ConfigureDependency(services, applicationSettings, recommenderSettings);
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
@@ -71,22 +77,44 @@ namespace WhisperAPI
             app.UseMvc();
         }
 
-        private static void ConfigureDependency(IServiceCollection services, ApplicationSettings applicationSettings)
+        private static void ConfigureDependency(IServiceCollection services, ApplicationSettings applicationSettings, RecommenderSettings recommenderSettings)
         {
             services.AddTransient<ISuggestionsService>(
                 x => new SuggestionsService(
                     x.GetService<IIndexSearch>(),
-                    x.GetService<INlpCall>(),
+                    x.GetService<ILastClickAnalytics>(),
                     x.GetService<IDocumentFacets>(),
+                    x.GetService<INearestDocuments>(),
                     x.GetService<IFilterDocuments>(),
-                    applicationSettings.IrrelevantIntents));
+                    applicationSettings.NumberOfWordsIntoQ,
+                    applicationSettings.MinimumConfidence,
+                    recommenderSettings));
 
             services.AddTransient<IQuestionsService>(x => new QuestionsService());
+
+            services.AddTransient<IFacetsService>(x => new FacetsService(x.GetService<IFacetValues>()));
+
+            services.AddTransient<IFacetValues>(
+                x => new FacetValues(
+                    x.GetService<HttpClient>(),
+                    applicationSettings.MlApiBaseAddress));
 
             services.AddTransient<INlpCall>(
                 x => new NlpCall(
                     x.GetService<HttpClient>(),
-                    applicationSettings.NlpApiBaseAddress));
+                    applicationSettings.IrrelevantIntents,
+                    applicationSettings.NlpApiBaseAddress,
+                    applicationSettings.MinimumRelevantConfidence));
+
+            services.AddTransient<ILastClickAnalytics>(
+                x => new LastClickAnalytics(
+                    x.GetService<HttpClient>(),
+                    applicationSettings.MlApiBaseAddress));
+
+            services.AddTransient<INearestDocuments>(
+                x => new NearestDocuments(
+                    x.GetService<HttpClient>(),
+                    applicationSettings.MlApiBaseAddress));
 
             services.AddTransient<IDocumentFacets>(
                 x => new DocumentFacets(
@@ -101,8 +129,11 @@ namespace WhisperAPI
             services.AddTransient<IIndexSearch>(
                 x => new IndexSearch(
                     applicationSettings.ApiKey,
+                    applicationSettings.NumberOfResults,
                     x.GetService<HttpClient>(),
-                    applicationSettings.SearchBaseAddress));
+                    applicationSettings.SearchBaseAddress,
+                    applicationSettings.OrganizationID));
+
 
             services.AddTransient<HttpClient, HttpClient>();
 

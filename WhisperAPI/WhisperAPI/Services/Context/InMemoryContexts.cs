@@ -18,16 +18,16 @@ namespace WhisperAPI.Services.Context
 
         private ConcurrentDictionary<Guid, ConversationContext> ConversationContexts { get; }
 
-        public ConversationContext this[Guid chatkey]
+        public ConversationContext this[Guid chatKey]
         {
             get
             {
-                if (!this.ConversationContexts.TryGetValue(chatkey, out ConversationContext conversationContext))
+                if (!this.ConversationContexts.TryGetValue(chatKey, out ConversationContext conversationContext))
                 {
                     this.RemoveOldContext();
 
-                    conversationContext = new ConversationContext(chatkey, DateTime.Now);
-                    this.ConversationContexts.TryAdd(chatkey, conversationContext);
+                    conversationContext = new ConversationContext(chatKey, DateTime.Now);
+                    this.ConversationContexts.TryAdd(chatKey, conversationContext);
                 }
 
                 return conversationContext;
